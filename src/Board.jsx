@@ -4,7 +4,7 @@ import { formatPeso, isOverdue, relTime, useStore } from './store'
 import { SourceBadge, inputCls } from './ui'
 
 export default function Board({ onOpenLead, onNewLead }) {
-  const { leads, actions } = useStore()
+  const { leads, actions, linkBadges } = useStore()
   const [search, setSearch] = useState('')
   const [sourceFilter, setSourceFilter] = useState('all')
   const [stageFilter, setStageFilter] = useState('all')
@@ -104,7 +104,17 @@ export default function Board({ onOpenLead, onNewLead }) {
                       className={`cursor-pointer rounded-lg border border-stone-200 bg-white p-3 shadow-sm transition-all hover:border-wagreen/60 hover:shadow ${dragId === lead.id ? 'card-dragging' : ''}`}
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <p className="text-sm font-medium leading-tight">{lead.name}</p>
+                        <p className="flex items-center gap-1.5 text-sm font-medium leading-tight">
+                          {lead.name}
+                          {linkBadges?.[String(lead.id)] > 0 && (
+                            <span
+                              className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-amber px-1 text-[10px] font-bold text-white"
+                              title="Tracked link opened since you last looked"
+                            >
+                              {linkBadges[String(lead.id)]}
+                            </span>
+                          )}
+                        </p>
                         <SourceBadge source={lead.source} />
                       </div>
                       <p className="mt-0.5 truncate text-xs text-navy/50">{lead.product}</p>

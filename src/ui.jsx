@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { SOURCE_STYLES, SOURCES, STAGES, sourceLabel } from './data'
 import { formatDate, formatPeso, isOverdue, todayISO, useStore } from './store'
+import { getConnection } from './api'
 
 // ---------- small shared bits ----------
 
@@ -154,10 +155,159 @@ export function LeadModal({ lead, onClose }) {
 
 // ---------- Lead detail drawer ----------
 
+const CHANNELS = [
+  { id: 'whatsapp', label: 'WhatsApp' },
+  { id: 'viber', label: 'Viber' },
+]
+
+function channelLabel(ch) {
+  return ch === 'whatsapp' ? 'WhatsApp' : ch === 'viber' ? 'Viber' : ch === 'email' ? 'Email' : 'SMS'
+}
+
+export function TrackedLinks({ lead }) {
+  const { links, actions, sync, pushToast } = useStore()
+  const [url, setUrl] = useState(() => localStorage.getItem('waaida-proposal-url') || '')
+  const [channel, setChannel] = useState('whatsapp')
+  const [busy, setBusy] = useState(false)
+  const [copiedId, setCopiedId] = useState(null)
+
+  const leadLinks = links.filter((ln) => String(ln.leadId) === String(lead.id))
+  const live = sync.connState === 'live'
+
+  async function send() {
+    if (!/^https?:\/\//i.test(url.trim())) {
+      pushToast('Enter a valid link starting with https://', 'error')
+      return
+    }
+    setBusy(true)
+    try {
+      const res = await actions.createLink(lead, url.trim(), channel)
+      if (res && res.id) {
+        localStorage.setItem('waaida-proposal-url', url.trim())
+        const msg = 'Here is your proposal: ' + res.trackUrl
+        const digits = String(lead.phone || '').replace(/[^0-9]/g, '').replace(/^0/, '')
+        if (channel === 'whatsapp') {
+          window.open(`https://wa.me/${digits}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener')
+        } else if (channel === 'viber') {
+          try { navigator.clipboard.writeText(msg) } catch { /* clipboard optional */ }
+          window.open(`viber://chat?number=%2B${digits}`, '_blank')
+          pushToast('Viber opened — message copied, paste it to send', 'success')
+        }
+        pushToast(`Link sent via ${channelLabel(channel)} — tracking enabled`, 'success')
+      }
+    } catch {
+      /* run() already toasted the reason */
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function copyTrackUrl(ln) {
+    // The backend's own splash page is the canonical tracking URL.
+    const base = getConnection().url
+    const full = base ? `${base}?action=open&id=${encodeURIComponent(ln.id)}` : ln.url
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(full).catch(() => {})
+    setCopiedId(ln.id)
+    setTimeout(() => setCopiedId(null), 2000)
+  }
+
+  if (!live) {
+    return (
+      <div>
+        <h3 className="mb-2 text-sm font-semibold">Tracked links</h3>
+        <p className="rounded-lg border border-dashed border-stone-300 bg-cream px-3 py-4 text-center text-xs text-navy/50">
+          Connect your sheet to send trackable links — you'll see every open.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <h3 className="mb-2 text-sm font-semibold">Tracked links</h3>
+      <div className="space-y-2">
+        {leadLinks.length === 0 && (
+          <p className="text-xs text-navy/50">No links sent yet. Send a landing page or proposal link to track opens.</p>
+        )}
+        {leadLinks.map((ln) => {
+          const opens = ln.opens || []
+          const first = opens.length ? new Date(opens[0].ts).getTime() : 0
+          const last = opens.length ? new Date(opens[opens.length - 1].ts).getTime() : 0
+          const dwellS = first && last ? Math.round((last - first) / 1000) : 0
+          const dwell = dwellS >= 60 ? `${Math.floor(dwellS / 60)}m ${dwellS % 60}s` : `~${dwellS}s`
+          return (
+            <div key={ln.id} className="rounded-lg border border-stone-200 bg-white px-3 py-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="min-w-0 flex-1 truncate text-xs font-semibold">{String(ln.url || '').replace(/^https?:\/\//i, '')}</p>
+                {!opens.length ? (
+                  <span className="shrink-0 rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-medium text-stone-600">Not opened yet</span>
+                ) : (
+                  <span className="shrink-0 rounded-full bg-wagreen/15 px-2 py-0.5 text-[10px] font-medium text-deepgreen">
+                    Opened · {opens.length} view{opens.length > 1 ? 's' : ''}{dwellS > 2 ? ` · ${dwell}` : ''}
+                  </span>
+                )}
+              </div>
+              <div className="mt-1.5 flex items-center justify-between text-[11px] text-navy/40">
+                <span>{channelLabel(ln.channel)}</span>
+                <span className="flex gap-2">
+                  <button className="font-medium text-deepgreen hover:underline" onClick={() => copyTrackUrl(ln)}>
+                    {copiedId === ln.id ? 'Copied!' : 'Copy tracking link'}
+                  </button>
+                  <button
+                    className="font-medium text-terracotta hover:underline"
+                    onClick={() => { if (window.confirm('Delete this tracked link?')) actions.deleteLink(ln.id) }}
+                  >
+                    Delete
+                  </button>
+                </span>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      <div className="mt-3 space-y-2 rounded-xl border border-stone-200 bg-cream p-3">
+        <input
+          type="url"
+          className={inputCls}
+          placeholder="https://docs.google.com/…"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+        />
+        <div className="flex items-center gap-1.5">
+          {CHANNELS.map((c) => (
+            <button
+              key={c.id}
+              onClick={() => setChannel(c.id)}
+              className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                channel === c.id ? 'border-wagreen bg-wagreen text-white' : 'border-stone-300 bg-white text-navy/70 hover:border-navy/40'
+              }`}
+            >
+              {c.label}
+            </button>
+          ))}
+          <Button className="ml-auto" onClick={send} disabled={busy || !url.trim()}>
+            {busy ? 'Creating…' : 'Send tracked link'}
+          </Button>
+        </div>
+        <p className="text-[11px] leading-relaxed text-navy/40">
+          The recipient lands on a WA AIDA tracking page that embeds your link — opens and reading time appear here.
+        </p>
+      </div>
+    </div>
+  )
+}
+
 export function LeadDrawer({ lead, onClose, onEdit }) {
   const { actions, sync } = useStore()
   const [noteText, setNoteText] = useState(null) // null = pristine (show lead.notes)
   const [followUp, setFollowUp] = useState(null) // null = pristine
+
+  // Opening a drawer acknowledges that lead's link-open badges.
+  useEffect(() => {
+    if (lead && sync.connState === 'live') actions.markLinkSeen(lead.id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lead && lead.id, sync.connState])
 
   if (!lead) return null
   const notesValue = noteText ?? lead.notes ?? ''
@@ -262,6 +412,10 @@ export function LeadDrawer({ lead, onClose, onEdit }) {
                 </li>
               ))}
             </ol>
+          </div>
+
+          <div className="border-t border-stone-100 pt-4">
+            <TrackedLinks lead={lead} />
           </div>
 
           <div className="border-t border-stone-100 pt-4">

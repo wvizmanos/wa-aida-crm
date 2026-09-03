@@ -79,7 +79,7 @@ async function call(action, params = {}) {
   return data
 }
 
-// One function per backend action used by the app (Phase 1 set).
+// One function per backend action used by the app.
 export const api = {
   list: () => call('list'),
   meta: () => call('meta'),
@@ -97,4 +97,10 @@ export const api = {
   note: (id, notes) => call('note', { id, notes }),
   value: (id, value) => call('value', { id, value }),
   delete: (id) => call('delete', { id }),
+
+  // ── Tracked links (Phase 2) — exact params from reference/Code.gs ──
+  createLink: (leadId, url, channel) => call('link', { leadId, url, channel }),
+  links: () => call('links'),
+  deleteLink: (id) => call('linkdel', { id }),
+  actLog: (id, label) => call('actlog', { id, label }),
 }

@@ -15,6 +15,8 @@ import { api, forceDemo, getConnection, saveConnection, clearConnection, setDemo
 const CACHE_KEY = 'waaida-cache-v1'
 const FOLLOWUPS_KEY = 'waaida-followups'
 const FU_DONE_KEY = 'waaida-fu-done'
+const LINK_SEEN_KEY = 'waaida-link-seen'
+const LINK_POLL_MS = 60000
 
 // Maps a raw sheet row (reference/Code.gs list_) to the app lead model.
 function mapRow(r) {
@@ -67,6 +69,24 @@ function loadFuDone() {
   return []
 }
 
+// Last-seen open counts per link id, so new client opens can raise a badge.
+function loadLinkSeen() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(LINK_SEEN_KEY))
+    if (parsed && typeof parsed === 'object') return parsed
+  } catch { /* ignore */ }
+  return {}
+}
+
+function parseOpens(raw) {
+  try {
+    const a = JSON.parse(raw || '[]')
+    return Array.isArray(a) ? a : []
+  } catch {
+    return []
+  }
+}
+
 const StoreContext = createContext(null)
 
 export function StoreProvider({ children }) {
@@ -79,6 +99,12 @@ export function StoreProvider({ children }) {
   const [followUps, setFollowUps] = useState(loadFollowUps)
   const [fuDone, setFuDone] = useState(loadFuDone)
   const [demoEdits, setDemoEdits] = useState(null) // demo-mode only: mutated sample leads
+  const [links, setLinks] = useState([]) // tracked links (live mode only)
+  const [linkBadges, setLinkBadges] = useState({}) // { leadId: opens-since-last-seen }
+  const linkSeenRef = useRef(loadLinkSeen)
+  const linksRef = useRef([])
+  const docLeadsRef = useRef(leads)
+  docLeadsRef.current = leads
 
   const hasSavedUrl = () => !!getConnection().url
   const demoRef = useRef(demoMode)
@@ -118,6 +144,7 @@ export function StoreProvider({ children }) {
       setConnState('live')
       // pull meta quietly for the Settings screen (never blocks the list)
       api.meta().then(setMeta).catch(() => {})
+      loadLinks(true)
       return true
     } catch (err) {
       if (err instanceof ApiError && err.code === 'unauthorized') {
@@ -182,6 +209,72 @@ export function StoreProvider({ children }) {
         }
         throw err
       })
+  }
+
+  // ---------- tracked links (live mode; demo shows a connect hint) ----------
+  function absorbLinks(rows, notify) {
+    const parsed = (Array.isArray(rows) ? rows : []).map((r) => ({
+      id: r.id,
+      leadId: String(r.leadId || ''),
+      url: r.url || '',
+      channel: r.channel || 'whatsapp',
+      created: r.created || '',
+      opens: parseOpens(r.opens),
+    }))
+    linksRef.current = parsed
+    setLinks(parsed)
+    // Raise a badge when a lead's links gained opens since we last looked.
+    // Links this browser has never seen get a silent baseline — otherwise
+    // every historical open would light up on first connect.
+    if (notify) {
+      const seen = { ...linkSeenRef.current }
+      const counts = {}
+      parsed.forEach((ln) => {
+        const known = Object.prototype.hasOwnProperty.call(seen, ln.id)
+        const prev = Number(seen[ln.id]) || 0
+        if (!known) {
+          seen[ln.id] = ln.opens.length
+        } else if (ln.opens.length > prev && ln.leadId) {
+          counts[ln.leadId] = (counts[ln.leadId] || 0) + (ln.opens.length - prev)
+          seen[ln.id] = ln.opens.length
+        }
+      })
+      linkSeenRef.current = seen
+      localStorage.setItem(LINK_SEEN_KEY, JSON.stringify(seen))
+      if (Object.keys(counts).length) {
+        setLinkBadges((b) => {
+          const next = { ...b }
+          Object.entries(counts).forEach(([leadId, n]) => { next[leadId] = (next[leadId] || 0) + n })
+          return next
+        })
+        const named = Object.keys(counts)
+          .map((leadId) => docLeadsRef.current?.find((l) => String(l.id) === leadId)?.name)
+          .filter(Boolean)[0]
+        pushToast(named ? `📡 ${named} opened your link` : '📡 A tracked link was opened', 'info')
+      }
+    }
+  }
+
+  async function loadLinks(notify = false) {
+    if (demoRef.current || authFailedRef.current || !hasSavedUrl()) return
+    try {
+      absorbLinks(await api.links(), notify)
+    } catch { /* links are auxiliary — never block the app */ }
+  }
+
+  useEffect(() => {
+    if (connState !== 'live' || demoMode) return undefined
+    const iv = setInterval(() => loadLinks(true), LINK_POLL_MS)
+    return () => clearInterval(iv)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connState, demoMode])
+
+  function clearLinkBadge(leadId) {
+    setLinkBadges((b) => {
+      const next = { ...b }
+      delete next[String(leadId)]
+      return next
+    })
   }
 
   const nowISO = () => new Date().toISOString()
@@ -360,6 +453,8 @@ export function StoreProvider({ children }) {
       setDemoMode(true)
       setConnState('demo')
       setMeta(null)
+      setLinks([])
+      setLinkBadges({})
       pushToast('Disconnected — showing demo data', 'info')
     },
 
@@ -371,6 +466,8 @@ export function StoreProvider({ children }) {
         setDemoMode(true)
         setConnState('demo')
         setMeta(null)
+        setLinks([])
+        setLinkBadges({})
       } else {
         setDemoMode(false)
         if (hasSavedUrl()) loadLive()
@@ -383,6 +480,36 @@ export function StoreProvider({ children }) {
 
     reload() {
       if (!demoMode && hasSavedUrl()) loadLive()
+    },
+
+    // ---- tracked links (Phase 2; live mode only, like the old app) ----
+    async createLink(lead, url, channel) {
+      const res = await run(api.createLink(lead.id, url, channel))
+      if (res && res.id) {
+        // activity parity with the old app: log "Link sent via <channel>"
+        api.actLog(lead.id, 'Link sent via ' + channel).catch(() => {})
+        refetchOnSettle()
+        await loadLinks(false)
+      }
+      return res
+    },
+    async deleteLink(linkId) {
+      await run(api.deleteLink(linkId))
+      await loadLinks(false)
+    },
+    // Opening a lead's drawer acknowledges its open-pings.
+    markLinkSeen(leadId) {
+      const seen = { ...linkSeenRef.current }
+      linksRef.current
+        .filter((ln) => String(ln.leadId) === String(leadId))
+        .forEach((ln) => { seen[ln.id] = ln.opens.length })
+      linkSeenRef.current = seen
+      localStorage.setItem(LINK_SEEN_KEY, JSON.stringify(seen))
+      clearLinkBadge(leadId)
+    },
+
+    linksFor(leadId) {
+      return linksRef.current.filter((ln) => String(ln.leadId) === String(leadId))
     },
   }
 
@@ -415,7 +542,7 @@ export function StoreProvider({ children }) {
     }).length,
   }
 
-  return <StoreContext.Provider value={{ leads: uiLeads, actions, sync, pushToast }}>{children}</StoreContext.Provider>
+  return <StoreContext.Provider value={{ leads: uiLeads, actions, sync, pushToast, links, linkBadges }}>{children}</StoreContext.Provider>
 }
 
 export function useStore() {
