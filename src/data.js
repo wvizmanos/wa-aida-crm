@@ -1,21 +1,47 @@
+// Canonical data vocabulary — MUST match the Google Sheet backend
+// (reference/Code.gs): stages new|contacted|qualified|proposal|won|lost,
+// sources fb-ads|manual|csv|whatsapp.
+
 export const STAGES = [
   { id: 'new', label: 'New', color: '#16213e' },
   { id: 'contacted', label: 'Contacted', color: '#0e7490' },
   { id: 'qualified', label: 'Qualified', color: '#1b5e20' },
-  { id: 'quoted', label: 'Quoted', color: '#f59e0b' },
+  { id: 'proposal', label: 'Proposal', color: '#f59e0b' },
   { id: 'won', label: 'Won', color: '#25d366' },
   { id: 'lost', label: 'Lost', color: '#c75b39' },
 ]
 
-export const SOURCES = ['FB Ads', 'Manual', 'CSV Import']
+export const STAGE_IDS = STAGES.map((s) => s.id)
 
-export const SOURCE_STYLES = {
-  'FB Ads': 'bg-blue-100 text-blue-800 border-blue-200',
-  Manual: 'bg-stone-100 text-stone-700 border-stone-300',
-  'CSV Import': 'bg-violet-100 text-violet-800 border-violet-200',
+export const SOURCES = [
+  { id: 'fb-ads', label: 'FB Ads' },
+  { id: 'manual', label: 'Manual' },
+  { id: 'csv', label: 'CSV Import' },
+  { id: 'whatsapp', label: 'WhatsApp' },
+]
+
+export const SOURCE_IDS = SOURCES.map((s) => s.id)
+
+export function sourceLabel(id) {
+  return (SOURCES.find((s) => s.id === id) || {}).label || id
 }
 
-// Dates are generated relative to "today" so overdue states stay realistic.
+export const SOURCE_STYLES = {
+  'fb-ads': 'bg-blue-100 text-blue-800 border-blue-200',
+  manual: 'bg-stone-100 text-stone-700 border-stone-300',
+  csv: 'bg-violet-100 text-violet-800 border-violet-200',
+  whatsapp: 'bg-wagreen/15 text-deepgreen border-wagreen/40',
+}
+
+// Demo-mode sample data — the same 13 leads the old PWA shipped
+// (reference/v19-app.html), with dates generated relative to "today".
+function daysAgoISO(n) {
+  const dt = new Date()
+  dt.setHours(12, 0, 0, 0)
+  dt.setDate(dt.getDate() - n)
+  return dt.toISOString()
+}
+
 function d(offsetDays) {
   const dt = new Date()
   dt.setHours(12, 0, 0, 0)
@@ -24,13 +50,47 @@ function d(offsetDays) {
   return `${dt.getFullYear()}-${p(dt.getMonth() + 1)}-${p(dt.getDate())}`
 }
 
+function act(label, daysAgo) {
+  return [{ t: 'created', ts: daysAgoISO(daysAgo), label: 'Lead captured' }]
+}
+
+export const sampleLeads = () => [
+  { id: 1, name: 'Maria Santos', phone: '+63 917 123 4567', source: 'fb-ads', product: 'Siomai Franchise', stage: 'new', value: 150000, intent: 92, notes: 'Asked about franchise cost and ROI timeline. Saw the FB ad at 11pm.', created: daysAgoISO(0), activity: act('Lead captured', 0) },
+  { id: 2, name: 'Ramon Garcia', phone: '+63 918 234 5678', source: 'fb-ads', product: 'Printing Business', stage: 'contacted', value: 60000, intent: 78, notes: 'Wants offset printing price list. Follow up Thursday.', created: daysAgoISO(0), activity: act('Lead captured', 0) },
+  { id: 3, name: 'Jenny Dela Cruz', phone: '+63 919 345 6789', source: 'csv', product: 'Retail Store', stage: 'qualified', value: 250000, intent: 85, notes: 'Owns 2 sari-sari stores. Interested in inventory analytics.', created: daysAgoISO(1), activity: act('Lead captured', 1) },
+  { id: 4, name: 'Kevin Tan', phone: '+63 917 456 7890', source: 'manual', product: 'Construction Manpower', stage: 'proposal', value: 800000, intent: 90, notes: 'Quoted for a 25-man crew. Needs manpower scheduling.', created: daysAgoISO(3), activity: act('Lead captured', 3) },
+  { id: 5, name: 'Aling Nena Store', phone: '+63 916 567 8901', source: 'fb-ads', product: 'Retail Store', stage: 'won', value: 120000, intent: 95, notes: 'Signed monthly analytics plan. Referral from Maria.', created: daysAgoISO(7), activity: act('Lead captured', 7) },
+  { id: 6, name: 'Carlo Reyes', phone: '+63 915 678 9012', source: 'csv', product: 'Construction Manpower', stage: 'contacted', value: 350000, intent: 60, notes: 'Imported from old spreadsheet. Called once, no answer.', created: daysAgoISO(0), activity: act('Lead captured', 0) },
+  { id: 7, name: 'Fatima Ahmed', phone: '+63 914 789 0123', source: 'manual', product: 'Retail Store', stage: 'new', value: 90000, intent: 70, notes: 'Met at trade show. Follow up with a sample report.', created: daysAgoISO(0), activity: act('Lead captured', 0) },
+  { id: 8, name: 'BJ Lim', phone: '+63 917 890 1234', source: 'fb-ads', product: 'Printing Business', stage: 'qualified', value: 150000, intent: 82, notes: 'Asked about supplier price benchmarking.', created: daysAgoISO(1), activity: act('Lead captured', 1) },
+  { id: 9, name: 'Rosa Mendoza', phone: '+63 918 901 2345', source: 'csv', product: 'Siomai Franchise', stage: 'contacted', value: 200000, intent: 74, notes: 'Comparing 3 franchise options. Send franchise deck.', created: daysAgoISO(0), activity: act('Lead captured', 0) },
+  { id: 10, name: 'Daniel Cruz', phone: '+63 919 012 3456', source: 'fb-ads', product: 'Construction Manpower', stage: 'new', value: 450000, intent: 66, notes: 'Inquiry about crew payroll tracking.', created: daysAgoISO(0), activity: act('Lead captured', 0) },
+  { id: 11, name: 'Michelle Ong', phone: '+63 916 123 8901', source: 'manual', product: 'Retail Store', stage: 'proposal', value: 180000, intent: 88, notes: 'Needs custom dashboard. Sent proposal v2.', created: daysAgoISO(2), activity: act('Lead captured', 2) },
+  { id: 12, name: 'Paolo Villanueva', phone: '+63 915 234 9012', source: 'csv', product: 'Printing Business', stage: 'won', value: 75000, intent: 80, notes: 'Renewed for another quarter.', created: daysAgoISO(14), activity: act('Lead captured', 14) },
+  { id: 13, name: 'Liza Ramirez', phone: '+63 917 345 6781', source: 'fb-ads', product: 'Siomai Franchise', stage: 'lost', value: 100000, intent: 40, notes: 'Went with a competitor. Keep in nurture list.', created: daysAgoISO(4), activity: act('Lead captured', 4) },
+]
+
+// Demo-mode follow-ups (local-only in Phase 1; the Reminders tab wiring
+// is Phase 3). Keys are lead ids as strings, values are YYYY-MM-DD.
+export const sampleFollowUps = () => ({
+  1: d(0),
+  2: d(-1),
+  3: d(-3),
+  4: d(2),
+  6: d(-2),
+  9: d(1),
+  13: d(-5),
+})
+
+/* ════════ Legacy seed (kept only for the disabled GitHub sync module) ════════ */
+
 let n = 0
 const id = () => `lead-${++n}`
 
 export const seedLeads = () => [
   {
     id: id(), name: 'Maria Santos', business: 'Sari-sari Store (Quezon City)', phone: '+639171234567',
-    source: 'FB Ads', value: 12000, stage: 'new', lastContact: d(-1), nextFollowUp: d(1),
+    source: 'Manual', value: 12000, stage: 'new', lastContact: d(-1), nextFollowUp: d(1),
     notes: [{ at: d(-1), text: 'Inquired about inventory tracking for her store. Wants to try before committing.' }],
     activity: [{ at: d(-1), text: 'Lead created from FB Ads inquiry' }],
   },

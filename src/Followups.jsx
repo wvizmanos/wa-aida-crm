@@ -11,8 +11,7 @@ export default function Followups({ onOpenLead }) {
     const q = search.trim().toLowerCase()
     return leads
       .filter((l) => l.nextFollowUp)
-      .filter((l) => (sourceFilter === 'All' ? true : l.source === sourceFilter))
-      .filter((l) => (q ? [l.name, l.business].join(' ').toLowerCase().includes(q) : true))
+      .filter((l) => (sourceFilter === 'All' ? true : l.source === sourceFilter))      .filter((l) => (q ? [l.name, l.business].join(' ').toLowerCase().includes(q) : true))
       .sort((a, b) => a.nextFollowUp.localeCompare(b.nextFollowUp))
   }, [leads, search, sourceFilter])
 
@@ -31,7 +30,7 @@ export default function Followups({ onOpenLead }) {
             <SourceBadge source={lead.source} />
             {od && <span className="rounded-full bg-amber px-2 py-0.5 text-[11px] font-semibold text-white">Overdue</span>}
           </div>
-          <p className="mt-0.5 truncate text-sm text-navy/50">{lead.business}</p>
+          <p className="mt-0.5 truncate text-sm text-navy/50">{lead.product}</p>
         </button>
         <div className="flex items-center gap-3 sm:justify-end">
           <div className="text-right">
@@ -62,8 +61,8 @@ export default function Followups({ onOpenLead }) {
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <input className={`${inputCls} sm:w-56`} placeholder="Search…" value={search} onChange={(e) => setSearch(e.target.value)} />
         <select className={`${inputCls} sm:w-36`} value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)}>
-          <option>All</option>
-          {SOURCES.map((s) => <option key={s}>{s}</option>)}
+          <option value="All">All</option>
+          {SOURCES.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
         </select>
       </div>
 

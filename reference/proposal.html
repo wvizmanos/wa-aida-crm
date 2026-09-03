@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#16213e">
+<title>Proposal · WA AIDA</title>
+<style>
+  :root{
+    --navy:#16213e; --cream:#fdf8f3; --green:#1b5e20; --wa:#25d366;
+    --amber:#f59e0b; --terra:#c75b39; --ink:#23314d; --mut:#6b7280;
+    --line:#e8e2d8; --card:#ffffff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{background:var(--cream);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;line-height:1.55}
+  body{padding-bottom:96px}
+  .top{background:var(--navy);color:#fff;padding:26px 20px 44px;position:relative;overflow:hidden}
+  .top::after{content:"";position:absolute;right:-70px;top:-70px;width:220px;height:220px;border-radius:50%;background:rgba(37,211,102,.14)}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:800;letter-spacing:.02em;font-size:17px}
+  .brand .dot{width:11px;height:11px;border-radius:3px;background:var(--wa);display:inline-block}
+  .brand b{color:#fff}
+  .brand span{color:#9fb0c9;font-weight:600}
+  .wrap{max-width:620px;margin:0 auto;padding:0 20px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;margin-top:-26px;padding:26px 22px;box-shadow:0 10px 30px rgba(22,33,62,.08)}
+  .eyebrow{font-size:11.5px;font-weight:800;letter-spacing:.14em;color:var(--terra);text-transform:uppercase}
+  .for{font-size:13px;color:var(--mut);margin-top:2px}
+  h1{font-size:23px;line-height:1.3;margin:10px 0 14px;color:var(--navy);font-weight:800}
+  .amount{display:flex;align-items:baseline;gap:8px;margin:4px 0 18px}
+  .amount .num{font-size:34px;font-weight:800;color:var(--green);letter-spacing:-.02em}
+  .amount .lbl{font-size:13px;color:var(--mut)}
+  .divider{height:1px;background:var(--line);margin:18px 0}
+  h2{font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--navy);margin-bottom:10px}
+  ul.svc{list-style:none}
+  ul.svc li{display:flex;gap:10px;align-items:flex-start;padding:7px 0;font-size:15px}
+  ul.svc .chk{flex:0 0 18px;width:18px;height:18px;margin-top:2px}
+  .quote{background:#f2f9f2;border-left:4px solid var(--green);border-radius:0 12px 12px 0;padding:14px 16px;font-size:15px;color:#2c3a2c;white-space:pre-wrap}
+  .meta{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:13px;color:var(--mut);margin-top:4px}
+  .meta b{color:var(--ink);font-weight:700}
+  .bar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:12px 20px calc(12px + env(safe-area-inset-bottom));z-index:10}
+  .bar .wrap{display:flex;gap:10px}
+  .btn{flex:1;border:none;border-radius:14px;font-size:16px;font-weight:800;padding:15px 12px;cursor:pointer;transition:transform .06s ease,opacity .15s}
+  .btn:active{transform:scale(.97)}
+  .btn-wa{background:var(--wa);color:#073b18}
+  .btn-wa:hover{opacity:.92}
+  .btn-ghost{background:#fff;color:var(--navy);border:1.5px solid var(--line)}
+  .accepted-hero{text-align:center;padding:18px 0 6px}
+  .accepted-hero .ring{width:74px;height:74px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;box-shadow:0 8px 24px rgba(27,94,32,.3)}
+  .accepted-hero h2{font-size:20px;letter-spacing:0;text-transform:none;margin:0 0 6px}
+  .accepted-hero p{font-size:14px;color:var(--mut)}
+  .skel{background:#efe9df;border-radius:10px;height:14px;margin:10px 0;animation:pulse 1.2s ease-in-out infinite}
+  .skel.h40{height:40px;width:70%}.skel.h28{height:28px}.skel.w60{width:60%}.skel.w40{width:40%}
+  @keyframes pulse{0%,100%{opacity:.5}50%{opacity:1}}
+  .err{padding:60px 20px;text-align:center;color:var(--mut)}
+  .err .big{font-size:40px;margin-bottom:10px}
+  .foot{text-align:center;font-size:12px;color:#aab4c8;margin-top:22px}
+  @media print{
+    body{background:#fff;padding-bottom:0}
+    .top{background:#fff;color:var(--navy);padding:10px 0 20px}
+    .brand b{color:var(--navy)} .brand span{color:var(--mut)}
+    .card{box-shadow:none;border:none;margin-top:8px;padding:0}
+    .bar{display:none}
+    .quote{break-inside:avoid}
+  }
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="wrap">
+    <div class="brand"><span class="dot"></span><b>WA AIDA</b><span>· Business Consultant</span></div>
+  </div>
+</div>
+<div class="wrap" id="root"></div>
+<div class="foot">Powered by <b>WA AIDA</b> — your AI business consultant</div>
+<div class="bar"><div class="wrap" id="actions"></div></div>
+
+<script>
+(function () {
+  'use strict';
+  var q = new URLSearchParams(location.search);
+  var id = q.get('id') || '';
+  var base = q.get('b') || '';
+  var ROOT = document.getElementById('root');
+  var ACT = document.getElementById('actions');
+  var PING_MS = 20000;
+  var accepted = false;
+
+  function money(n) {
+    n = Number(n) || 0;
+    return '₱' + n.toLocaleString('en-PH');
+  }
+  function fmt(iso) {
+    if (!iso) return '';
+    var d = new Date(iso);
+    return d.toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+  function track(action) {
+    if (!id || !base) return;
+    try {
+      fetch(base + '?action=' + action + '&id=' + encodeURIComponent(id), { mode: 'no-cors', keepalive: true }).catch(function () {});
+    } catch (e) { /* ignore */ }
+  }
+  function esc(x) {
+    return String(x == null ? '' : x).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function svcList(services) {
+    var items = String(services || '').split(/\n+/).map(function (x) { return x.trim(); }).filter(Boolean);
+    if (!items.length) return '';
+    var check = '<svg class="chk" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="9" fill="#1b5e20"/><path d="M5 9.3l2.6 2.6L13 6.6" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    return '<h2>What\'s included</h2><ul class="svc">' + items.map(function (x) { return '<li>' + check + '<span>' + esc(x) + '</span></li>'; }).join('') + '</ul>';
+  }
+  function validityLine(validity, created) {
+    var v = String(validity || '').trim();
+    if (!v) return '';
+    var days = parseInt(v, 10);
+    if (!isNaN(days) && created) {
+      var d = new Date(created);
+      d.setDate(d.getDate() + days);
+      return '<b>Valid until</b> ' + fmt(d.toISOString());
+    }
+    return '<b>Valid</b> ' + esc(v);
+  }
+  function renderDoc(p) {
+    ROOT.innerHTML =
+      '<div class="card">' +
+        '<div class="eyebrow">Proposal</div>' +
+        (p.leadName ? '<div class="for">Prepared for <b>' + esc(p.leadName) + '</b></div>' : '') +
+        '<h1>' + esc(p.title) + '</h1>' +
+        '<div class="amount"><span class="num">' + money(p.amount) + '</span><span class="lbl">one-time investment</span></div>' +
+        (p.services ? svcList(p.services) + '<div class="divider"></div>' : '') +
+        (p.message ? '<h2>From your consultant</h2><div class="quote">' + esc(p.message) + '</div><div class="divider"></div>' : '') +
+        '<div class="meta">' +
+          '<span><b>Prepared</b> ' + fmt(p.created) + '</span>' +
+          validityLine(p.validity, p.created) +
+        '</div>' +
+      '</div>';
+  }
+  function renderAccepted(p) {
+    ROOT.innerHTML =
+      '<div class="card"><div class="accepted-hero">' +
+        '<div class="ring"><svg width="38" height="38" viewBox="0 0 24 24" fill="none"><path d="M4.5 12.5l5 5L19.5 7" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>' +
+        '<h2>Proposal accepted!</h2>' +
+        '<p>' + esc(p.title) + ' · ' + money(p.amount) + '</p>' +
+        '<p style="margin-top:8px">' + esc(p.leadName || '') + ' will reach out to you to get started.</p>' +
+      '</div></div>';
+    ACT.innerHTML = '<button class="btn btn-ghost" onclick="window.print()">Save as PDF</button>';
+    accepted = true;
+  }
+  function renderErr(msg) {
+    ROOT.innerHTML = '<div class="err"><div class="big">📄</div><div>' + esc(msg || 'This proposal could not be loaded.') + '</div></div>';
+    ACT.innerHTML = '';
+  }
+  function skeleton() {
+    ROOT.innerHTML = '<div class="card">' +
+      '<div class="skel w40" style="height:12px"></div><div class="skel h28 w60" style="margin-top:14px"></div>' +
+      '<div class="skel h40" style="margin-top:16px"></div>' +
+      '<div class="skel"></div><div class="skel w60"></div><div class="skel w60"></div>' +
+      '<div class="skel h40 w40" style="margin-top:16px"></div>' +
+      '</div>';
+    ACT.innerHTML = '';
+  }
+  function confirmAccept(p) {
+    if (accepted) return;
+    if (!window.confirm('Accept this proposal for ' + money(p.amount) + '?')) return;
+    fetch(base + '?action=proposal_accept&id=' + encodeURIComponent(id), { keepalive: true })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (res && res.ok) { renderAccepted(p); track('proposal_ping'); }
+        else renderErr('Could not accept right now — please try again.');
+      })
+      .catch(function () { renderErr('Could not accept right now — please try again.'); });
+  }
+  function actions(p) {
+    var acceptBtn = accepted ? '' :
+      '<button class="btn btn-wa" id="btn-accept">Accept proposal ✓</button>';
+    var printBtn = '<button class="btn btn-ghost" onclick="window.print()">Print / PDF</button>';
+    ACT.innerHTML = acceptBtn + printBtn;
+    if (!accepted) document.getElementById('btn-accept').addEventListener('click', function () { confirmAccept(p); });
+  }
+  function boot() {
+    if (!id || !base) { renderErr('This proposal link is incomplete.'); return; }
+    skeleton();
+    track('proposal_open');
+    fetch(base + '?action=proposal_get&id=' + encodeURIComponent(id))
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (!res || res.error || !res.ok) { renderErr(res && res.error); return; }
+        if (res.status === 'accepted') { renderAccepted(res); return; }
+        renderDoc(res);
+        actions(res);
+        setInterval(function () { track('proposal_ping'); }, PING_MS);
+        window.addEventListener('pagehide', function () { track('proposal_ping'); });
+        window.addEventListener('beforeunload', function () { track('proposal_ping'); });
+      })
+      .catch(function () { renderErr('Could not load the proposal. Please check your connection.'); });
+  }
+  boot();
+})();
+</script>
+</body>
+</html>

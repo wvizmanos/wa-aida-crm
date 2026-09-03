@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>WA AIDA</title>
+<style>
+  html, body { margin: 0; height: 100%; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; background: #fdf8f3; color: #16213e; display: flex; align-items: center; justify-content: center; }
+  .card { text-align: center; padding: 40px 28px; max-width: 360px; }
+  .logo { font-weight: 800; font-size: 18px; letter-spacing: .3px; }
+  .logo b { color: #1b5e20; }
+  .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #25d366; margin-right: 6px; vertical-align: 1px; animation: p 1.2s infinite; }
+  @keyframes p { 50% { opacity: .25; } }
+  .msg { color: #5b6478; font-size: 14px; margin-top: 14px; line-height: 1.5; }
+  .go { margin-top: 18px; display: inline-block; color: #1b5e20; font-size: 13px; font-weight: 600; text-decoration: none; border-bottom: 1px solid currentColor; padding-bottom: 2px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo"><span class="dot"></span>WA <b>AIDA</b></div>
+  <div class="msg" id="msg">Opening your link…</div>
+  <a class="go" id="go" href="#">Open directly instead</a>
+</div>
+<script>
+  (function () {
+    var q = new URLSearchParams(location.search);
+    var id = q.get('id') || '';
+    var dest = q.get('url') || '';
+    var base = q.get('b') || '';
+    if (!id || !base) {
+      document.getElementById('msg').textContent = 'This link is no longer available.';
+      document.getElementById('go').style.display = 'none';
+      return;
+    }
+    function ping() { try { fetch(base + '?action=ping&id=' + id + '&t=' + Date.now(), { mode: 'no-cors', keepalive: true }); } catch (e) {} }
+    // record the open (server dedupes within 10s). keepalive = survives page navigation away
+    try { fetch(base + '?action=open&id=' + id + '&t=' + Date.now(), { mode: 'no-cors', keepalive: true }); } catch (e) {}
+    var iv = setInterval(function () { if (document.visibilityState === 'visible') ping(); }, 5000);
+    window.addEventListener('pagehide', ping);
+    var go = document.getElementById('go');
+    if (dest) {
+      go.href = dest;
+      setTimeout(function () { location.replace(dest); }, 2000);
+    } else {
+      document.getElementById('msg').textContent = 'This link is no longer available.';
+      go.style.display = 'none';
+    }
+  })();
+</script>
+</body>
+</html>

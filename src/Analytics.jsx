@@ -1,9 +1,9 @@
 import { useMemo } from 'react'
 import { SOURCES, STAGES } from './data'
-import { formatPeso, localISO, todayISO, useStore } from './store'
+import { formatPeso, useStore } from './store'
 
 export default function Analytics() {
-  const { leads } = useStore()
+  const { leads, sync } = useStore()
 
   const byStage = useMemo(
     () => STAGES.map((s) => ({
@@ -14,20 +14,14 @@ export default function Analytics() {
     [leads]
   )
   const bySource = useMemo(
-    () => SOURCES.map((src) => ({ source: src, count: leads.filter((l) => l.source === src).length })),
+    () => SOURCES.map((s) => ({ ...s, count: leads.filter((l) => l.source === s.id).length })),
     [leads]
   )
-  const completedThisWeek = useMemo(() => {
-    const now = new Date(todayISO() + 'T12:00:00')
-    const monday = new Date(now)
-    monday.setDate(now.getDate() - ((now.getDay() + 6) % 7)) // Monday of this week
-    const mondayISO = localISO(monday)
-    return leads.reduce((n, l) => n + (l.activity || []).filter((a) => /Follow-up completed/.test(a.text) && a.at >= mondayISO).length, 0)
-  }, [leads])
+  const completedThisWeek = sync.followUpsCompletedThisWeek
 
   const maxStageTotal = Math.max(...byStage.map((s) => s.total), 1)
   const sourceTotal = Math.max(bySource.reduce((n, s) => n + s.count, 0), 1)
-  const sourceColors = { 'FB Ads': '#0e7490', Manual: '#16213e', 'CSV Import': '#7c3aed' }
+  const sourceColors = { 'fb-ads': '#0e7490', manual: '#16213e', csv: '#7c3aed', whatsapp: '#25d366' }
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 px-4 py-6 sm:px-6">
@@ -58,12 +52,12 @@ export default function Analytics() {
         <section className="rounded-2xl border border-stone-200 bg-white p-5">
           <h3 className="mb-4 text-sm font-semibold">Leads by source</h3>
           <div className="flex items-center gap-6">
-            <Donut segments={bySource.map((s) => ({ value: s.count, color: sourceColors[s.source], label: s.source }))} />
+            <Donut segments={bySource.map((s) => ({ value: s.count, color: sourceColors[s.id], label: s.label }))} />
             <ul className="space-y-2 text-sm">
               {bySource.map((s) => (
-                <li key={s.source} className="flex items-center gap-2">
-                  <span className="h-3 w-3 rounded-sm" style={{ backgroundColor: sourceColors[s.source] }} />
-                  <span>{s.source}</span>
+                <li key={s.id} className="flex items-center gap-2">
+                  <span className="h-3 w-3 rounded-sm" style={{ backgroundColor: sourceColors[s.id] }} />
+                  <span>{s.label}</span>
                   <span className="font-semibold">{s.count}</span>
                   <span className="text-xs text-navy/40">({Math.round((s.count / sourceTotal) * 100)}%)</span>
                 </li>

@@ -1,0 +1,2429 @@
+<!doctype html>
+<!--
+  Discovery (audit trail):
+    deliverable: WA AIDA CRM interactive prototype (App double-delivery, 390x844 authoring)
+    audience: WA AIDA users — PH SMB owners (retail / construction manpower / siomai franchise / printing)
+    direction: dense-professional with warmth; light warm UI; navy ink; brand-green accent; WhatsApp green as functional color
+    sections: 8 (leads inbox / lead detail / add lead / import / pipeline / follow-up / analytics / AI assistant)
+    three-axis: used_skill=mobile-app skeleton | used_design_system=null (brand-custom tokens from learntayo.com/waaida.html, view skipped per OUTPUT_RULES §三·补 exception) | used_craft=[typography, color, anti-ai-slop, accessibility-baseline, state-coverage, animation-discipline, form-validation, laws-of-ux]
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>WA AIDA CRM · Interactive Prototype</title>
+<script id="auto-designer-preview-contract" type="application/json">
+{
+  "artifactRole": "interactive-homepage",
+  "authoringViewport": { "width": 390, "height": 844 },
+  "deviceAdaptation": { "enabled": true, "strategy": "responsive", "supportedDevices": ["desktop", "tablet", "mobile"] },
+  "breakpoints": { "mobileMax": 767, "tabletMin": 768, "tabletMax": 1023, "desktopMin": 1024 },
+  "defaultDevice": "canvas"
+}
+</script>
+<link rel="manifest" href="manifest.webmanifest" />
+<meta name="theme-color" content="#1b5e20" />
+<link rel="icon" type="image/png" href="icons/icon-192.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bitter:wght@600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #fdf8f3;
+    --surface: #ffffff;
+    --ink: #16213e;
+    --muted: #6b6b6b;
+    --border: #e8e2da;
+    --accent: #1b5e20;
+    --accent-soft: color-mix(in oklch, var(--accent) 13%, transparent);
+    --wa: #25d366;
+    --wa-soft: #e6f9ee;
+    --wa-deep: #128c7e;
+    --amber: #f59e0b;
+    --amber-ink: #7c4a03;
+    --amber-soft: color-mix(in oklch, var(--amber) 16%, transparent);
+    --terra: #c75b39;
+    --terra-soft: color-mix(in oklch, var(--terra) 13%, transparent);
+    --blue: #007aff;
+    --blue-soft: color-mix(in oklch, var(--blue) 12%, transparent);
+    --danger: #b3261e;
+    --danger-soft: color-mix(in oklch, var(--danger) 10%, transparent);
+    --fg-soft: color-mix(in oklch, var(--ink) 6%, transparent);
+    --font-display: 'Bitter', Georgia, 'Times New Roman', serif;
+    --font-body: 'Manrope', 'Segoe UI', system-ui, sans-serif;
+    --font-mono: ui-monospace, 'Cascadia Mono', 'SF Mono', Menlo, monospace;
+    --fs-h1: 26px; --fs-h2: 20px; --fs-h3: 16px; --fs-body: 15px; --fs-meta: 12px;
+    --radius-card: 18px; --radius-btn: 14px; --radius-pill: 999px;
+    --ease: cubic-bezier(0.2, 0, 0, 1);
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; width: 100%; height: 100%; }
+  body {
+    background:
+      radial-gradient(70% 90% at 50% 0%, color-mix(in oklch, var(--accent) 7%, var(--bg)) 0%, var(--bg) 62%);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: var(--fs-body);
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+  }
+  .stage { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; }
+  .caption {
+    display: none; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 10px;
+  }
+  .caption strong { color: var(--ink); font-weight: 600; }
+
+  /* ─── screen surface ─── */
+  .screen {
+    position: relative;
+    width: min(390px, 100vw);
+    height: min(844px, 100vh);
+    background: var(--bg);
+    border-radius: 44px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 0 0 1px rgba(22,33,62,0.08), 0 28px 60px -12px rgba(22,33,62,0.25), 0 8px 20px -8px rgba(22,33,62,0.14);
+  }
+  html[data-auto-designer-preview-device="tablet"] .screen { width: min(834px, 100vw); height: min(1112px, 100vh); border-radius: 32px; }
+  html[data-auto-designer-preview-device="desktop"] .screen { width: 100vw; height: 100vh; border-radius: 0; box-shadow: none; }
+
+
+  .content { flex: 1 1 auto; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; padding: 6px 0 24px; scroll-behavior: smooth; }
+  .content::-webkit-scrollbar { display: none; }
+  .home-indicator { flex: 0 0 26px; position: relative; }
+  .home-indicator::after { content: ''; position: absolute; left: 50%; bottom: 7px; transform: translateX(-50%); width: 134px; height: 5px; background: var(--ink); border-radius: 999px; opacity: 0.85; }
+
+  /* ─── primitives ─── */
+  .pad { padding-inline: 20px; }
+  .stack { display: flex; flex-direction: column; gap: 16px; }
+  .row { display: flex; align-items: center; gap: 12px; }
+  .row-between { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .header { padding: 8px 20px 12px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .header h1 { font-family: var(--font-display); font-size: var(--fs-h1); letter-spacing: -0.01em; line-height: 1.15; margin: 0; }
+  .greeting { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 0 0 4px; display: flex; align-items: center; gap: 6px; }
+  .brand-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--wa); display: inline-block; }
+  .icon-btn {
+    width: 40px; height: 40px; border-radius: 999px; background: var(--surface);
+    border: 1px solid var(--border); display: inline-grid; place-items: center; color: var(--ink);
+    cursor: pointer; transition: transform 0.12s var(--ease), background 0.12s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .icon-btn:hover { background: var(--fg-soft); }
+  .icon-btn:active { transform: scale(0.94); }
+  .icon-btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.7; }
+  .h2 { font-family: var(--font-display); font-size: var(--fs-h2); letter-spacing: -0.01em; line-height: 1.2; margin: 0; }
+  .h3 { font-size: var(--fs-h3); font-weight: 700; line-height: 1.3; margin: 0; }
+  .meta { font-family: var(--font-mono); font-size: var(--fs-meta); color: var(--muted); }
+  .num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  .muted { color: var(--muted); }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 16px; }
+  .card.accent { background: var(--accent); color: #fff; border-color: transparent; }
+  .card.accent .meta { color: rgba(255,255,255,0.75); }
+
+  /* search + chips */
+  .search {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    padding: 0 14px; height: 46px;
+  }
+  .search svg { width: 16px; height: 16px; stroke: var(--muted); fill: none; stroke-width: 1.8; flex: 0 0 auto; }
+  .search input { border: 0; outline: 0; background: transparent; font: inherit; font-size: 14px; color: var(--ink); width: 100%; }
+  .search input::placeholder { color: color-mix(in oklch, var(--muted) 80%, transparent); }
+  .search:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+  .chips::-webkit-scrollbar { display: none; }
+  .search-input {
+    width: 100%; height: 40px; border: 1px solid var(--border); border-radius: 10px;
+    padding: 0 12px; font: inherit; font-size: 14px; color: var(--ink); background: var(--surface);
+    margin-bottom: 8px; box-sizing: border-box;
+  }
+  .search-input:focus { outline: 0; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .chip {
+    flex: 0 0 auto; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--muted); font: inherit; font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all 0.15s var(--ease); -webkit-tap-highlight-color: transparent;
+  }
+  .chip:active { transform: scale(0.96); }
+  .chip.active { background: var(--ink); border-color: var(--ink); color: #fff; }
+
+  /* lead rows */
+  .lead-row {
+    display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 12px;
+    padding: 12px 0; border-top: 1px solid var(--border); cursor: pointer;
+  }
+  .lead-row:first-child { border-top: 0; }
+  .lead-row:active { background: var(--fg-soft); margin-inline: -12px; padding-inline: 12px; border-radius: 14px; }
+  .avatar {
+    width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center;
+    font-weight: 800; font-size: 14px; color: var(--ink);
+    background: linear-gradient(135deg, var(--accent-soft), var(--fg-soft));
+    border: 1px solid var(--border);
+  }
+  .avatar.wa { background: var(--wa-soft); border-color: color-mix(in oklch, var(--wa) 35%, transparent); color: var(--wa-deep); }
+  .lead-row .body { min-width: 0; }
+  .lead-row .title { font-size: 15px; font-weight: 700; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lead-row .sub { color: var(--muted); font-size: 13px; line-height: 1.35; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lead-row .right { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+  .wa-btn {
+    width: 34px; height: 34px; border-radius: 50%; border: 0; cursor: pointer;
+    background: var(--wa); color: #0d3a12; display: grid; place-items: center;
+    transition: transform 0.12s var(--ease), filter 0.12s; -webkit-tap-highlight-color: transparent;
+  }
+  .wa-btn:hover { filter: brightness(1.05); }
+  .wa-btn:active { transform: scale(0.9); }
+  .wa-btn svg { width: 17px; height: 17px; fill: currentColor; }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.01em; white-space: nowrap;
+  }
+  .badge .dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+  .b-src { background: var(--fg-soft); color: var(--ink); }
+  .b-src.fb { background: var(--blue-soft); color: var(--blue); }
+  .b-src.csv { background: var(--amber-soft); color: var(--amber-ink); }
+  .b-src.manual { background: var(--accent-soft); color: var(--accent); }
+  .stage-pill { padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: 0.02em; }
+
+  /* fab */
+  .fab {
+    position: absolute; right: 20px; bottom: 74px; z-index: 30;
+    width: 56px; height: 56px; border-radius: 50%; border: 0; cursor: pointer;
+    background: var(--accent); color: #fff; display: grid; place-items: center;
+    box-shadow: 0 10px 24px -6px rgba(27,94,32,0.5);
+    transition: transform 0.15s var(--ease), box-shadow 0.15s; -webkit-tap-highlight-color: transparent;
+  }
+  .fab:hover { box-shadow: 0 14px 28px -6px rgba(27,94,32,0.55); }
+  .fab:active { transform: scale(0.92); }
+  .fab svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+  /* tabbar */
+  .tabbar {
+    flex: 0 0 auto; display: grid; grid-template-columns: repeat(5, 1fr);
+    padding: 6px 8px 0; border-top: 1px solid var(--border);
+    background: color-mix(in oklch, var(--surface) 94%, transparent);
+    backdrop-filter: blur(20px);
+  }
+  .tab {
+    display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 7px 0;
+    color: var(--muted); background: none; border: 0; cursor: pointer; font: inherit;
+    font-size: 10px; font-weight: 600; letter-spacing: 0.02em; border-radius: 12px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tab.active { color: var(--accent); }
+  .tab svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.7; }
+  .tab.active svg { stroke-width: 2.1; }
+  .tab .t-label { line-height: 1.2; }
+
+  /* buttons */
+  .btn-primary {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; min-height: 50px; padding: 14px 20px; background: var(--accent); color: #fff;
+    border: 0; border-radius: var(--radius-btn); font: inherit; font-size: 15px; font-weight: 700; cursor: pointer;
+    transition: transform 0.12s var(--ease), filter 0.12s; -webkit-tap-highlight-color: transparent;
+  }
+  .btn-primary:hover { filter: brightness(1.06); }
+  .btn-primary:active { transform: scale(0.98); }
+  .btn-primary:disabled { background: color-mix(in oklch, var(--muted) 35%, var(--surface)); color: var(--muted); cursor: not-allowed; transform: none; filter: none; }
+  .btn-wa {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; min-height: 50px; padding: 14px 20px; background: var(--wa); color: #0d3a12;
+    border: 0; border-radius: var(--radius-btn); font: inherit; font-size: 15px; font-weight: 800; cursor: pointer;
+    transition: transform 0.12s var(--ease), filter 0.12s; -webkit-tap-highlight-color: transparent;
+  }
+  .btn-wa:hover { filter: brightness(1.05); }
+  .btn-wa:active { transform: scale(0.98); }
+  .btn-wa svg { width: 18px; height: 18px; fill: currentColor; }
+  .btn-secondary {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; min-height: 48px; padding: 13px 18px; background: transparent; color: var(--ink);
+    border: 1px solid var(--border); border-radius: var(--radius-btn); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+    transition: background 0.12s, transform 0.12s var(--ease); -webkit-tap-highlight-color: transparent;
+  }
+  .btn-secondary:hover { background: var(--fg-soft); }
+  .btn-secondary:active { transform: scale(0.98); }
+
+  /* forms */
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-size: 13px; font-weight: 700; }
+  .field .hint { font-size: 12px; color: var(--muted); }
+  .input, .select, .textarea {
+    width: 100%; border: 1px solid var(--border); border-radius: 12px; background: var(--surface);
+    font: inherit; font-size: 15px; color: var(--ink); padding: 12px 14px; outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .input:focus, .select:focus, .textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .textarea { min-height: 84px; resize: vertical; }
+  .input:user-invalid, .select:user-invalid { border-color: var(--danger); box-shadow: 0 0 0 3px var(--danger-soft); }
+  .err-msg { display: none; font-size: 12px; font-weight: 600; color: var(--danger); }
+  .field.invalid .err-msg { display: block; }
+  .field.invalid .input, .field.invalid .select { border-color: var(--danger); box-shadow: 0 0 0 3px var(--danger-soft); }
+  .form-error {
+    display: none; background: var(--danger-soft); border: 1px solid color-mix(in oklch, var(--danger) 30%, transparent);
+    color: var(--danger); border-radius: 12px; padding: 10px 14px; font-size: 13px; font-weight: 600;
+  }
+  .form-error.show { display: block; }
+
+  /* pipeline */
+  .stage-summary { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+  .stage-summary::-webkit-scrollbar { display: none; }
+  .s-chip {
+    flex: 0 0 auto; padding: 10px 14px; border-radius: 14px; background: var(--surface);
+    border: 1px solid var(--border); cursor: pointer; min-width: 96px; text-align: left;
+    transition: transform 0.12s var(--ease), border-color 0.12s; -webkit-tap-highlight-color: transparent;
+  }
+  .s-chip:active { transform: scale(0.97); }
+  .s-chip.active { border-color: var(--ink); box-shadow: 0 0 0 1.5px var(--ink); }
+  .s-chip .n { font-family: var(--font-mono); font-size: 18px; font-weight: 700; }
+  .s-chip .l { font-size: 11px; font-weight: 700; color: var(--muted); margin-top: 1px; display: flex; align-items: center; gap: 5px; }
+  .s-chip .l .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .boards { display: flex; gap: 12px; overflow-x: auto; padding-inline: 20px; align-items: flex-start; scrollbar-width: none; }
+  .boards::-webkit-scrollbar { display: none; }
+  .board { flex: 0 0 232px; border-radius: 16px; border: 1px solid var(--border); background: color-mix(in oklch, var(--surface) 60%, transparent); padding: 10px; }
+  .board-head { display: flex; align-items: center; justify-content: space-between; padding: 2px 4px 10px; }
+  .board-head .l { font-size: 12px; font-weight: 800; display: flex; align-items: center; gap: 6px; }
+  .board-head .l .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .board-head .cnt { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+  .deal {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 13px; padding: 11px 12px;
+    margin-bottom: 8px; cursor: pointer; transition: transform 0.12s var(--ease), box-shadow 0.12s;
+  }
+  .deal:hover { box-shadow: 0 4px 14px -4px rgba(22,33,62,0.18); }
+  .deal:active { transform: scale(0.98); }
+  .deal .d-name { font-size: 14px; font-weight: 700; line-height: 1.25; }
+  .deal .d-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .deal .d-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
+  .deal .d-val { font-family: var(--font-mono); font-size: 13px; font-weight: 700; }
+  .board.empty { display: grid; place-items: center; min-height: 120px; color: var(--muted); font-size: 12px; text-align: center; padding: 14px; }
+
+  /* follow-up */
+  .tpl {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card);
+    padding: 14px; margin-bottom: 10px;
+  }
+  .tpl .t-name { font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .tpl .t-body { font-size: 13px; color: var(--muted); line-height: 1.5; margin-top: 6px; border-left: 0; }
+  .tpl .t-acts { display: flex; gap: 8px; margin-top: 10px; }
+  .mini-btn {
+    flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+    min-height: 38px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface);
+    font: inherit; font-size: 12px; font-weight: 700; color: var(--ink); cursor: pointer;
+    transition: background 0.12s, transform 0.12s var(--ease); -webkit-tap-highlight-color: transparent;
+  }
+  .mini-btn:hover { background: var(--fg-soft); }
+  .mini-btn:active { transform: scale(0.97); }
+  .mini-btn.wa { background: var(--wa-soft); border-color: color-mix(in oklch, var(--wa) 40%, transparent); color: var(--wa-deep); }
+  .mini-btn svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+
+  /* analytics */
+  .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 14px; }
+  .kpi .v { font-family: var(--font-mono); font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+  .kpi .l { font-size: 11px; font-weight: 700; color: var(--muted); margin-top: 2px; }
+  .kpi .d { font-size: 11px; font-weight: 700; margin-top: 4px; }
+  .up { color: var(--accent); } .down { color: var(--terra); }
+  .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 16px; }
+  .chart-card h3 { font-size: 13px; font-weight: 800; margin: 0 0 2px; }
+  .chart-card .sub { font-size: 11px; color: var(--muted); margin-bottom: 12px; }
+  .funnel-row { display: grid; grid-template-columns: 64px 1fr 44px; align-items: center; gap: 10px; margin-bottom: 9px; }
+  .funnel-row .stage-l { font-size: 11px; font-weight: 700; }
+  .funnel-track { height: 20px; background: var(--fg-soft); border-radius: 6px; overflow: hidden; }
+  .funnel-fill { height: 100%; border-radius: 6px; transition: width 0.5s var(--ease); }
+  .funnel-row .n { font-family: var(--font-mono); font-size: 12px; font-weight: 700; text-align: right; }
+  .donut-wrap { display: flex; align-items: center; gap: 18px; }
+  .legend { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+  .legend .li { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+  .legend .sw { width: 10px; height: 10px; border-radius: 3px; flex: 0 0 auto; }
+  .legend .pct { margin-left: auto; font-family: var(--font-mono); font-weight: 700; }
+  .demo-tag { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 999px; background: var(--amber-soft); color: var(--amber-ink); font-size: 10px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+
+  /* skeleton */
+  .skel { border-radius: 12px; background: linear-gradient(100deg, var(--fg-soft) 40%, color-mix(in oklch, var(--fg-soft) 50%, var(--surface)) 50%, var(--fg-soft) 60%); background-size: 200% 100%; animation: shimmer 1.1s infinite linear; }
+  @keyframes shimmer { to { background-position: -200% 0; } }
+
+  /* AI chat */
+  .chat { display: flex; flex-direction: column; gap: 10px; padding-bottom: 8px; }
+  .bubble { max-width: 86%; padding: 11px 14px; border-radius: 16px; font-size: 14px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+  .bubble.ai { background: var(--surface); border: 1px solid var(--border); border-top-left-radius: 6px; align-self: flex-start; }
+  .bubble.me { background: var(--accent); color: #fff; border-top-right-radius: 6px; align-self: flex-end; }
+  .bubble .chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .ai-chip {
+    padding: 7px 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface);
+    font: inherit; font-size: 12px; font-weight: 700; color: var(--accent); cursor: pointer;
+    transition: background 0.12s, transform 0.12s var(--ease); -webkit-tap-highlight-color: transparent;
+  }
+  .ai-chip:hover { background: var(--accent-soft); }
+  .ai-chip:active { transform: scale(0.96); }
+  .typing { display: inline-flex; gap: 4px; padding: 4px 2px; }
+  .typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); animation: blink 1.2s infinite; }
+  .typing i:nth-child(2) { animation-delay: 0.2s; } .typing i:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes blink { 0%, 80%, 100% { opacity: 0.25; } 40% { opacity: 1; } }
+  .chatbar {
+    display: flex; align-items: center; gap: 10px; padding: 10px 16px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px; margin-inline: 20px;
+  }
+  .chatbar input { flex: 1; border: 0; outline: 0; background: transparent; font: inherit; font-size: 14px; }
+  .chatbar .send {
+    width: 40px; height: 40px; border-radius: 50%; border: 0; background: var(--accent); color: #fff;
+    display: grid; place-items: center; cursor: pointer; flex: 0 0 auto;
+    transition: transform 0.12s var(--ease); -webkit-tap-highlight-color: transparent;
+  }
+  .chatbar .send:active { transform: scale(0.9); }
+  .chatbar .send svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+  /* detail */
+  .detail-hero { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 20px 18px; }
+  .detail-hero .avatar { width: 60px; height: 60px; font-size: 20px; }
+  .activity { position: relative; padding-left: 22px; }
+  .activity::before { content: ''; position: absolute; left: 5px; top: 8px; bottom: 8px; width: 1.5px; background: var(--border); }
+  .act-item { position: relative; padding-bottom: 14px; }
+  .act-item::before { content: ''; position: absolute; left: -21.5px; top: 5px; width: 9px; height: 9px; border-radius: 50%; background: var(--surface); border: 2px solid var(--accent); }
+  .act-item .a-title { font-size: 13px; font-weight: 700; }
+  .act-item .a-sub { font-size: 12px; color: var(--muted); margin-top: 1px; }
+
+  /* sheets */
+  .scrim { position: absolute; inset: 0; background: rgba(22,33,62,0.45); opacity: 0; pointer-events: none; transition: opacity 0.25s var(--ease); z-index: 60; }
+  .scrim.open { opacity: 1; pointer-events: auto; }
+  .sheet {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 70;
+    background: var(--bg); border-radius: 24px 24px 0 0; padding: 10px 20px calc(20px + env(safe-area-inset-bottom));
+    transform: translateY(105%); transition: transform 0.3s var(--ease);
+    max-height: 88%; overflow-y: auto; scrollbar-width: none;
+  }
+  .sheet::-webkit-scrollbar { display: none; }
+  .sheet.open { transform: translateY(0); }
+  .sheet .grab { width: 40px; height: 4px; border-radius: 999px; background: var(--border); margin: 0 auto 14px; }
+  .sheet h2 { font-family: var(--font-display); font-size: 20px; margin: 0 0 4px; }
+  .sheet .s-sub { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
+  .stage-opt {
+    display: flex; align-items: center; gap: 12px; width: 100%; padding: 13px 14px; margin-bottom: 8px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 13px; cursor: pointer;
+    font: inherit; font-size: 14px; font-weight: 700; color: var(--ink); text-align: left;
+    transition: transform 0.12s var(--ease), border-color 0.12s; -webkit-tap-highlight-color: transparent;
+  }
+  .stage-opt:hover { border-color: color-mix(in oklch, var(--ink) 30%, transparent); }
+  .stage-opt:active { transform: scale(0.98); }
+  .stage-opt .dot { width: 12px; height: 12px; border-radius: 50%; flex: 0 0 auto; }
+  .stage-opt .cur { margin-left: auto; font-size: 11px; color: var(--muted); font-weight: 600; }
+  .import-step { display: flex; align-items: center; gap: 14px; padding: 13px 0; border-bottom: 1px solid var(--border); }
+  .import-step:last-of-type { border-bottom: 0; }
+  .import-step .idx { width: 26px; height: 26px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-family: var(--font-mono); font-size: 12px; font-weight: 700; flex: 0 0 auto; }
+  .import-step.done .idx { background: var(--accent); color: #fff; }
+  .import-step .t { font-size: 13px; font-weight: 700; }
+  .import-step .s { font-size: 12px; color: var(--muted); }
+  .mapping-row { display: flex; align-items: center; gap: 8px; padding: 9px 0; border-bottom: 1px dashed var(--border); font-size: 13px; }
+  .mapping-row .from { font-family: var(--font-mono); font-size: 12px; color: var(--muted); flex: 1; }
+  .mapping-row .arrow { color: var(--muted); }
+  .mapping-row .to { font-weight: 700; }
+  .mapping-row .ok { color: var(--accent); }
+
+  /* toast */
+  .toast {
+    position: absolute; left: 50%; bottom: 96px; transform: translate(-50%, 12px); z-index: 90;
+    background: var(--ink); color: #fff; padding: 11px 18px; border-radius: 999px;
+    font-size: 13px; font-weight: 600; opacity: 0; pointer-events: none;
+    transition: opacity 0.25s var(--ease), transform 0.25s var(--ease);
+    max-width: 86%; text-align: center;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+  .toast.success { background: var(--accent); }
+
+  /* states */
+  .state-card { text-align: center; padding: 34px 24px; }
+  .state-card .ic { width: 56px; height: 56px; margin: 0 auto 12px; border-radius: 18px; background: var(--fg-soft); display: grid; place-items: center; }
+  .state-card .ic svg { width: 26px; height: 26px; stroke: var(--muted); fill: none; stroke-width: 1.6; }
+  .state-card h3 { font-family: var(--font-display); font-size: 18px; margin: 0 0 6px; }
+  .state-card p { font-size: 13px; color: var(--muted); margin: 0 0 16px; max-width: 30ch; margin-inline: auto; }
+
+  .view { display: none; animation: viewIn 0.28s var(--ease); }
+  .view.active { display: block; }
+  @keyframes viewIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  .back-btn { display: inline-flex; align-items: center; gap: 4px; background: none; border: 0; font: inherit; font-size: 14px; font-weight: 700; color: var(--ink); cursor: pointer; padding: 6px 10px 6px 0; border-radius: 10px; }
+  .back-btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+  :focus-visible { outline: 2.5px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  }
+  @media (min-width: 1024px) {
+    .content { padding-inline: max(20px, calc((100vw - 420px) / 2)); }
+  }
+  .demo-banner { display: none; align-items: center; gap: 10px; margin: 0 20px 12px; padding: 10px 12px; background: var(--amber-soft); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 12px; font-size: 12px; font-weight: 600; color: var(--amber-ink); line-height: 1.45; }
+  .demo-banner button { margin-left: auto; flex: 0 0 auto; }
+  body.demo-mode .demo-banner { display: flex; }
+  .spin { animation: spin 1.2s linear infinite; transform-origin: 50% 50%; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="caption"><strong>WA AIDA CRM</strong> · Interactive prototype · tap around</div>
+
+  <div class="screen" data-od-id="screen">
+
+
+    <main class="content" data-od-id="content">
+      <!-- ═══════════ VIEW: LEADS ═══════════ -->
+      <section class="view active" id="view-leads" aria-label="Leads">
+        <div class="header">
+          <div>
+            <p class="greeting"><span class="brand-dot" aria-hidden="true"></span>WA AIDA CRM · <span id="today-label">Thursday Aug 13</span> <span class="demo-tag" id="conn-flag" style="display:none;">Demo data</span></p>
+            <h1>Leads</h1>
+          </div>
+          <div class="row" style="gap:8px;">
+            <button class="icon-btn" id="btn-import" aria-label="Import leads">
+              <svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 19h16"/></svg>
+            </button>
+            <button class="icon-btn" id="btn-settings" aria-label="Settings">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V11a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="pad" style="margin-bottom:12px;">
+          <div class="search">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+            <input type="search" id="lead-search" placeholder="Search name or phone…" aria-label="Search leads" />
+          </div>
+        </div>
+        <div class="pad" style="margin-bottom:8px;">
+          <div class="chips" role="group" aria-label="Filter by source">
+            <button class="chip active" data-src="all">All</button>
+            <button class="chip" data-src="fb-ads">FB Ads</button>
+            <button class="chip" data-src="manual">Manual</button>
+            <button class="chip" data-src="csv">CSV / Sheets</button>
+          </div>
+        </div>
+        <div class="pad" id="lead-list" aria-label="Lead list"></div>
+      </section>
+
+      <!-- ═══════════ VIEW: PIPELINE ═══════════ -->
+      <section class="view" id="view-pipeline" aria-label="Pipeline">
+        <div class="demo-banner" role="note"><span>Sample data — connect your Google Sheet in Settings to see your real pipeline.</span><button class="btn-secondary" data-demo-connect>Connect</button></div>
+        <div class="header">
+          <div>
+            <p class="greeting"><span class="brand-dot" aria-hidden="true"></span>Pipeline</p>
+            <h1>Funnel</h1>
+          </div>
+          <button class="icon-btn" id="pipe-sort" aria-label="Sort pipeline deals">
+            <svg viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+          </button>
+        </div>
+        <div class="pad" style="margin-bottom:12px;">
+          <div class="card accent" style="padding:14px 16px;">
+            <div class="row-between">
+              <div>
+                <div class="meta" style="margin-bottom:2px;">PIPELINE VALUE</div>
+                <div class="num" id="pipe-value" style="font-size:24px;font-weight:700;">₱2.4M</div>
+              </div>
+              <div style="text-align:right;">
+                <div class="meta" style="margin-bottom:2px;">WIN RATE</div>
+                <div class="num" id="pipe-rate" style="font-size:24px;font-weight:700;">18%</div>
+              </div>
+            </div>
+            <div class="meta" id="pipe-won" style="margin-top:8px;">Won deals this month: 5 · target 8</div>
+          </div>
+        </div>
+        <div class="pad" style="margin-bottom:12px;">
+          <div class="stage-summary" id="stage-summary" role="group" aria-label="Filter by stage"></div>
+        </div>
+        <div class="boards" id="boards"></div>
+        <p class="meta" style="text-align:center;margin:14px 20px 0;">Tap a deal to open it · move stages from the detail screen</p>
+      </section>
+
+      <!-- ═══════════ VIEW: FOLLOW-UP ═══════════ -->
+      <section class="view" id="view-followup" aria-label="Follow-up">
+        <div class="demo-banner" role="note"><span>Sample data — templates and scheduled follow-ups shown are examples.</span><button class="btn-secondary" data-demo-connect>Connect</button></div>
+        <div class="header">
+          <div>
+            <p class="greeting"><span class="brand-dot" aria-hidden="true"></span>Follow-up</p>
+            <h1>WhatsApp</h1>
+          </div>
+          <button class="icon-btn" aria-label="New template">
+            <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+        </div>
+        <div class="pad" style="margin-bottom:6px;">
+          <p class="meta" style="margin:0 0 8px;">SEND LATER · SCHEDULED</p>
+          <div class="card" id="scheduled-card"></div>
+        </div>
+        <div class="pad" style="margin-bottom:6px;">
+          <div class="row-between" style="margin:0 0 8px;">
+            <p class="meta" style="margin:0;">SEND TO</p>
+            <button class="mini-btn" id="fu-sort" aria-label="Sort leads"><svg viewBox="0 0 24 24" style="width:14px;height:14px;vertical-align:-2px;"><path d="M4 6h16M7 12h10M10 18h4"/></svg> Sort</button>
+          </div>
+          <input class="search-input" id="fu-search" type="search" placeholder="Search leads…" aria-label="Search leads" />
+          <div class="chips" id="fu-targets" role="group" aria-label="Choose which lead to message"></div>
+        </div>
+        <div class="pad">
+          <p class="meta" style="margin:0 0 8px;">QUICK TEMPLATES · TAP TO SEND</p>
+          <div id="tpl-list"></div>
+        </div>
+      </section>
+
+      <!-- ═══════════ VIEW: ANALYTICS ═══════════ -->
+      <section class="view" id="view-analytics" aria-label="Analytics">
+        <div class="demo-banner" role="note"><span>Sample data — charts below are examples until you connect your sheet.</span><button class="btn-secondary" data-demo-connect>Connect</button></div>
+        <div class="header">
+          <div>
+            <p class="greeting"><span class="brand-dot" aria-hidden="true"></span>Analytics</p>
+            <h1>Insights</h1>
+          </div>
+          <span class="demo-tag" id="analytics-tag">Sample data</span>
+        </div>
+        <div class="pad" style="margin-bottom:12px;">
+          <div class="chips" role="group" aria-label="Date range">
+            <button class="chip" data-range="7d">7 days</button>
+            <button class="chip active" data-range="30d">30 days</button>
+            <button class="chip" data-range="90d">90 days</button>
+          </div>
+        </div>
+        <div id="analytics-body">
+          <div class="pad grid-2" style="margin-bottom:12px;">
+            <div class="kpi"><div class="skel" style="height:34px;width:70%;"></div><div class="skel" style="height:12px;width:50%;margin-top:8px;"></div></div>
+            <div class="kpi"><div class="skel" style="height:34px;width:70%;"></div><div class="skel" style="height:12px;width:50%;margin-top:8px;"></div></div>
+            <div class="kpi"><div class="skel" style="height:34px;width:70%;"></div><div class="skel" style="height:12px;width:50%;margin-top:8px;"></div></div>
+            <div class="kpi"><div class="skel" style="height:34px;width:70%;"></div><div class="skel" style="height:12px;width:50%;margin-top:8px;"></div></div>
+          </div>
+          <div class="pad"><div class="skel" style="height:160px;"></div></div>
+        </div>
+      </section>
+
+      <!-- ═══════════ VIEW: AI ASSISTANT ═══════════ -->
+      <section class="view" id="view-ai" aria-label="AI Assistant">
+        <div class="demo-banner" role="note"><span>Sample assistant — answers are simulated until the real WA AIDA AI is connected.</span><button class="btn-secondary" data-demo-connect>Connect</button></div>
+        <div class="header">
+          <div>
+            <p class="greeting"><span class="brand-dot" aria-hidden="true"></span>WA AIDA AI</p>
+            <h1>Assistant</h1>
+          </div>
+          <button class="icon-btn" aria-label="New chat">
+            <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+        </div>
+        <div class="pad chat" id="chat" aria-live="polite"></div>
+        <div style="height:74px;" aria-hidden="true"></div>
+      </section>
+
+      <!-- ═══════════ VIEW: LEAD DETAIL ═══════════ -->
+      <section class="view" id="view-detail" aria-label="Lead detail"></section>
+    </main>
+
+    <button class="fab" id="fab-add" aria-label="Add lead">
+      <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+
+    <nav class="tabbar" aria-label="Main navigation">
+      <button class="tab active" data-tab="leads" aria-label="Leads">
+        <svg viewBox="0 0 24 24"><path d="M3 12 12 3l9 9"/><path d="M5 10v10h14V11"/></svg>
+        <span class="t-label">Leads</span>
+      </button>
+      <button class="tab" data-tab="pipeline" aria-label="Pipeline">
+        <svg viewBox="0 0 24 24"><path d="M4 20V11M10 20V4M16 20v-8M22 20H2"/></svg>
+        <span class="t-label">Pipeline</span>
+      </button>
+      <button class="tab" data-tab="followup" aria-label="WhatsApp follow-up">
+        <svg viewBox="0 0 24 24"><path d="M22 12c0 5.5-4.5 10-10 10S2 17.5 2 12 6.5 2 12 2s10 4.5 10 10z"/><path d="M12 6v6l4 2"/></svg>
+        <span class="t-label">Follow-up</span>
+      </button>
+      <button class="tab" data-tab="analytics" aria-label="Analytics">
+        <svg viewBox="0 0 24 24"><path d="M4 20V14M10 20V11M16 20v-9M22 20H2"/></svg>
+        <span class="t-label">Insights</span>
+      </button>
+      <button class="tab" data-tab="ai" aria-label="AI Assistant">
+        <svg viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 1 3 3c2.6.6 4.4 3 4.4 5.7 0 1.4-.5 2.7-1.3 3.7.5.9.9 2 .9 3.1 0 2.5-2 4.5-4.5 4.5H9.5A4.5 4.5 0 0 1 5 17.5c0-1.1.3-2.2.9-3.1a5.5 5.5 0 0 1-1.3-3.7C4.6 8 6.4 5.6 9 5A3 3 0 0 1 12 2z"/><path d="M9.5 14.5h5M10 17.5h4"/></svg>
+        <span class="t-label">AI</span>
+      </button>
+    </nav>
+
+    <div class="home-indicator" aria-hidden="true"></div>
+
+    <!-- sheets -->
+    <div class="scrim" id="scrim" aria-hidden="true"></div>
+
+    <div class="sheet" id="sheet-add" role="dialog" aria-modal="true" aria-labelledby="add-title">
+      <div class="grab" aria-hidden="true"></div>
+      <h2 id="add-title">Add lead</h2>
+      <p class="s-sub">Capture a new lead in seconds.</p>
+      <form id="add-form" novalidate>
+        <div class="stack" style="gap:14px;">
+          <div class="form-error" id="add-form-error" tabindex="-1" role="group" aria-label="Form errors"></div>
+          <div class="field" id="f-name">
+            <label for="in-name">Full name <span style="color:var(--danger);">*</span></label>
+            <input class="input" id="in-name" name="name" type="text" required autocomplete="name" placeholder="e.g. Maria Santos" aria-describedby="name-hint name-err" />
+            <span class="err-msg" id="name-err" role="alert">Name is required.</span>
+            <span class="hint" id="name-hint">Who is this lead?</span>
+          </div>
+          <div class="field" id="f-phone">
+            <label for="in-phone">Phone <span style="color:var(--danger);">*</span></label>
+            <input class="input" id="in-phone" name="phone" type="tel" required inputmode="tel" placeholder="0917 123 4567" pattern="(09|\+639)[0-9]{9}" aria-describedby="phone-hint phone-err" />
+            <span class="err-msg" id="phone-err" role="alert">Enter a valid PH mobile, e.g. 0917 123 4567 or +63 917 123 4567.</span>
+            <span class="hint" id="phone-hint">Philippine mobile number — we'll match WhatsApp.</span>
+          </div>
+          <div class="grid-2">
+            <div class="field">
+              <label for="in-source">Source</label>
+              <select class="select" id="in-source" name="source">
+                <option value="fb-ads">FB Ads</option>
+                <option value="manual">Manual</option>
+                <option value="csv">CSV / Sheets</option>
+                <option value="whatsapp">WhatsApp</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="in-product">Interest</label>
+              <select class="select" id="in-product" name="product">
+                <option>Basic Plan</option>
+                <option>Pro Plan</option>
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <label for="in-value">Deal value (₱) <span style="color:var(--muted);font-weight:400;">· optional</span></label>
+            <input class="input" id="in-value" name="value" type="number" inputmode="numeric" min="0" step="100" placeholder="e.g. 2990" />
+            <span class="hint">Potential deal amount — you can change it later from the lead's page.</span>
+          </div>
+          <div class="field">
+            <label for="in-notes">Notes</label>
+            <textarea class="textarea" id="in-notes" name="notes" placeholder="Anything worth remembering…"></textarea>
+          </div>
+          <button class="btn-primary" type="submit" id="add-submit">Save lead</button>
+          <button class="btn-secondary" type="button" id="add-cancel">Cancel</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="sheet" id="sheet-import" role="dialog" aria-modal="true" aria-labelledby="import-title">
+      <div class="grab" aria-hidden="true"></div>
+      <h2 id="import-title">Import leads</h2>
+      <p class="s-sub">Bring leads from a spreadsheet in one go.</p>
+      <div id="import-body"></div>
+    </div>
+
+    <div class="sheet" id="sheet-value" role="dialog" aria-modal="true" aria-labelledby="value-title">
+      <div class="grab" aria-hidden="true"></div>
+      <h2 id="value-title">Deal value</h2>
+      <p class="s-sub" id="value-sub">Set the potential or agreed amount.</p>
+      <div class="field">
+        <label for="in-value2">Amount (₱)</label>
+        <input class="input" id="in-value2" type="number" inputmode="numeric" min="0" step="100" placeholder="e.g. 2990" />
+        <span class="hint">Shows on the pipeline board and in your totals.</span>
+      </div>
+      <div class="row" style="margin-top:14px; gap:10px;">
+        <button class="btn-secondary" style="flex:1;" id="value-cancel">Cancel</button>
+        <button class="btn-primary" style="flex:1.4;" id="value-save">Save</button>
+      </div>
+    </div>
+
+    <div class="sheet" id="sheet-stage" role="dialog" aria-modal="true" aria-labelledby="stage-title">
+      <div class="grab" aria-hidden="true"></div>
+      <h2 id="stage-title">Move to stage</h2>
+      <p class="s-sub" id="stage-sub">Where should this deal go next?</p>
+      <div id="stage-opts"></div>
+      <button class="btn-secondary" style="margin-top:6px;" id="stage-cancel">Cancel</button>
+    </div>
+
+    <div class="sheet" id="sheet-note" role="dialog" aria-modal="true" aria-labelledby="note-title">
+      <div class="grab" aria-hidden="true"></div>
+      <h2 id="note-title">Add note</h2>
+      <p class="s-sub">Keep context on this lead.</p>
+      <div class="field">
+        <textarea class="textarea" id="note-text" placeholder="e.g. Called at 2pm — wants a callback Saturday…" style="min-height:110px;"></textarea>
+      </div>
+      <div class="row" style="margin-top:14px; gap:10px;">
+        <button class="btn-secondary" style="flex:1;" id="note-cancel">Cancel</button>
+        <button class="btn-primary" style="flex:1.4;" id="note-save">Save note</button>
+      </div>
+    </div>
+
+    <div class="sheet" id="sheet-link" role="dialog" aria-modal="true" aria-labelledby="link-title">
+      <div class="grab" aria-hidden="true"></div>
+      <h2 id="link-title">Send link</h2>
+      <p class="s-sub" id="link-info">Track when it is opened.</p>
+      <div class="field">
+        <label for="link-url">Landing page or proposal URL</label>
+        <input class="input" id="link-url" type="url" placeholder="https://docs.google.com/…" aria-describedby="link-hint" />
+        <span class="hint" id="link-hint">The recipient lands on a WA AIDA tracking page that embeds your link, then opens it. Clicks and reading time appear under the lead.</span>
+        <button class="btn-secondary" id="link-copy" type="button" style="margin-top:8px;font-size:13px;padding:8px 14px;">Copy link</button>
+      </div>
+      <div class="field">
+        <label id="link-ch-label">Send via</label>
+        <div class="chips" id="link-channels" role="radiogroup" aria-labelledby="link-ch-label">
+          <button class="chip active" data-channel="whatsapp" role="radio" aria-checked="true">WhatsApp</button>
+          <button class="chip" data-channel="email" role="radio" aria-checked="false">Email</button>
+          <button class="chip" data-channel="viber" role="radio" aria-checked="false">Viber</button>
+        </div>
+      </div>
+      <div class="row" style="margin-top:14px; gap:10px;">
+        <button class="btn-secondary" style="flex:1;" id="link-cancel">Cancel</button>
+        <button class="btn-primary" style="flex:1.4;" id="link-send">Send link</button>
+      </div>
+    </div>
+
+    <div class="sheet" id="sheet-prop" role="dialog" aria-modal="true" aria-labelledby="prop-title">
+      <div class="grab" aria-hidden="true"></div>
+      <h2 id="prop-title">New hosted proposal</h2>
+      <p class="s-sub">Client opens a branded page — you see views and accept.</p>
+      <div class="field">
+        <label for="prop-title-in">Proposal title</label>
+        <input class="input" id="prop-title-in" type="text" placeholder="Website + monthly maintenance" />
+      </div>
+      <div class="row" style="gap:10px;">
+        <div class="field" style="flex:1;">
+          <label for="prop-amount">Amount (₱)</label>
+          <input class="input" id="prop-amount" type="number" inputmode="numeric" placeholder="7990" />
+        </div>
+        <div class="field" style="flex:1;">
+          <label for="prop-validity">Valid for (days)</label>
+          <input class="input" id="prop-validity" type="number" inputmode="numeric" value="14" />
+        </div>
+      </div>
+      <div class="field">
+        <label for="prop-services">What's included (one per line)</label>
+        <textarea class="input" id="prop-services" rows="3" placeholder="Branded proposal page&#10;2 rounds of revisions&#10;Launch within 5 days"></textarea>
+      </div>
+      <div class="field">
+        <label for="prop-msg">Personal message</label>
+        <textarea class="input" id="prop-msg" rows="2" placeholder="Glad to work with you — here's what I propose."></textarea>
+      </div>
+      <div class="row" style="margin-top:14px; gap:10px;">
+        <button class="btn-secondary" style="flex:1;" id="prop-cancel">Cancel</button>
+        <button class="btn-primary" style="flex:1.4;" id="prop-create">Create proposal</button>
+      </div>
+    </div>
+
+    <div class="sheet" id="sheet-sched"/ role="dialog" aria-modal="true" aria-labelledby="sched-title">
+      <div class="grab" aria-hidden="true"></div>
+      <h2 id="sched-title">Schedule follow-up</h2>
+      <p class="s-sub" id="sched-info">Choose when to follow up.</p>
+      <div class="field">
+        <label for="sched-dt">Date &amp; time</label>
+        <input type="datetime-local" class="select" id="sched-dt" />
+      </div>
+      <div class="row" style="margin-top:14px; gap:10px;">
+        <button class="btn-secondary" style="flex:1;" id="sched-cancel">Cancel</button>
+        <button class="btn-primary" style="flex:1.4;" id="sched-confirm">Schedule</button>
+      </div>
+    </div>
+
+    <div class="sheet" id="sheet-tpl" role="dialog" aria-modal="true" aria-labelledby="tpl-edit-title">
+      <div class="grab" aria-hidden="true"></div>
+      <h2 id="tpl-edit-title">Edit template</h2>
+      <p class="s-sub">Placeholders: {name} = their first name, {product} = what they asked about.</p>
+      <div class="field">
+        <label for="tpl-name">Template name</label>
+        <input class="input" id="tpl-name" type="text" maxlength="40" />
+      </div>
+      <div class="field">
+        <label for="tpl-body">Message</label>
+        <textarea class="input" id="tpl-body" rows="4" style="resize:vertical;min-height:96px;"></textarea>
+        <span class="hint">Used by Send on WhatsApp, Copy and Schedule. Reset restores the original.</span>
+      </div>
+      <div class="row" style="margin-top:14px; gap:10px;">
+        <button class="btn-secondary" style="flex:1;" id="tpl-reset">Reset</button>
+        <button class="btn-primary" style="flex:1.4;" id="tpl-save">Save</button>
+      </div>
+    </div>
+
+    <div class="sheet" id="sheet-settings" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+      <div class="grab" aria-hidden="true"></div>
+      <h2 id="settings-title">Connect your data</h2>
+      <p class="s-sub">Live mode stores leads in your Google Sheet. Demo mode keeps sample data on this device.</p>
+      <div id="settings-status" class="kpi" style="margin-bottom:12px;"></div>
+      <div class="field">
+        <label for="in-script-url">Apps Script Web App URL</label>
+        <input class="input" id="in-script-url" type="url" placeholder="https://script.google.com/macros/s/…/exec" aria-describedby="url-hint" />
+        <span class="hint" id="url-hint">Deploy the backend script, then paste its /exec URL here.</span>
+      </div>
+      <div class="field">
+        <label for="in-proposal-url">Default link (landing page or proposal)</label>
+        <input class="input" id="in-proposal-url" type="url" placeholder="https://docs.google.com/…" />
+        <span class="hint">Prefilled when you send a link to a lead — set your landing page here.</span>
+      </div>
+      <div class="field">
+        <label for="in-token">Security token (optional)</label>
+        <input class="input" id="in-token" type="text" placeholder="Paste the TOKEN value from backend/Code.gs" autocomplete="off" />
+        <span class="hint">Locks your sheet from strangers who open your tracked links. Leave blank if you didn't set TOKEN in the backend script.</span>
+      </div>
+      <div class="row" style="gap:10px;margin-top:14px;">
+        <button class="btn-secondary" style="flex:1;" id="settings-clear">Use demo data</button>
+        <button class="btn-primary" style="flex:1.4;" id="settings-save">Save &amp; connect</button>
+      </div>
+      <p class="meta" style="margin-top:14px;line-height:1.65;">First time? Follow the 4 steps in the setup guide (backend/Code.gs + CONNECT.md in the package): ① create a Sheet ② paste the script ③ Deploy → Web app ④ paste the URL here.</p>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  /* ══════════ DATA ══════════ */
+  const STAGES = {
+    new:       { label: 'New',       color: '#16213e' },
+    contacted: { label: 'Contacted', color: '#007aff' },
+    qualified: { label: 'Qualified', color: '#f59e0b' },
+    proposal:  { label: 'Proposal',  color: '#128c7e' },
+    won:       { label: 'Won',       color: '#1b5e20' },
+    lost:      { label: 'Lost',      color: '#c75b39' },
+  };
+  const STAGE_ORDER = ['new', 'contacted', 'qualified', 'proposal', 'won', 'lost'];
+  const SRC = {
+    'fb-ads':   { label: 'FB Ads',      cls: 'fb' },
+    'manual':   { label: 'Manual',      cls: 'manual' },
+    'csv':      { label: 'CSV Import',  cls: 'csv' },
+    'whatsapp': { label: 'WhatsApp',    cls: 'wa' },
+  };
+  const PESO = n => '₱' + n.toLocaleString('en-PH');
+  const parseAct = raw => {
+    try { const a = JSON.parse(raw || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; }
+  };
+  const ensureAct = l => {
+    if (!l.activity) l.activity = [{ t: 'created', ts: l.created || '', label: 'Lead captured' }];
+    return l.activity;
+  };
+  const mostRecentLead = () => {
+    const sorted = leads.slice().sort((a, b) => {
+      const ta = a.created ? new Date(a.created).getTime() : 0;
+      const tb = b.created ? new Date(b.created).getTime() : 0;
+      return tb - ta;
+    });
+    return sorted[0];
+  };
+
+  let leads = [
+    { id: 1,  name: 'Maria Santos',     phone: '+63 917 123 4567', source: 'fb-ads',   product: 'Siomai Franchise',      stage: 'new',       value: 150000, intent: 92, time: '2m',  notes: 'Asked about franchise cost and ROI timeline. Saw the FB ad at 11pm.' },
+    { id: 2,  name: 'Ramon Garcia',     phone: '+63 918 234 5678', source: 'fb-ads',   product: 'Printing Business',     stage: 'contacted', value: 60000,  intent: 78, time: '1h',  notes: 'Wants offset printing price list. Follow up Thursday.' },
+    { id: 3,  name: 'Jenny Dela Cruz',  phone: '+63 919 345 6789', source: 'csv',      product: 'Retail Store',          stage: 'qualified', value: 250000, intent: 85, time: '1d',  notes: 'Owns 2 sari-sari stores. Interested in inventory analytics.' },
+    { id: 4,  name: 'Kevin Tan',        phone: '+63 917 456 7890', source: 'manual',   product: 'Construction Manpower', stage: 'proposal',  value: 800000, intent: 90, time: '3d',  notes: 'Quoted for a 25-man crew. Needs manpower scheduling.' },
+    { id: 5,  name: 'Aling Nena Store', phone: '+63 916 567 8901', source: 'fb-ads',   product: 'Retail Store',          stage: 'won',       value: 120000, intent: 95, time: '1w',  notes: 'Signed monthly analytics plan. Referral from Maria.' },
+    { id: 6,  name: 'Carlo Reyes',      phone: '+63 915 678 9012', source: 'csv',      product: 'Construction Manpower', stage: 'contacted', value: 350000, intent: 60, time: '2h',  notes: 'Imported from old spreadsheet. Called once, no answer.' },
+    { id: 7,  name: 'Fatima Ahmed',     phone: '+63 914 789 0123', source: 'manual',   product: 'Retail Store',          stage: 'new',       value: 90000,  intent: 70, time: '30m', notes: 'Met at trade show. Follow up with a sample report.' },
+    { id: 8,  name: 'BJ Lim',           phone: '+63 917 890 1234', source: 'fb-ads',   product: 'Printing Business',     stage: 'qualified', value: 150000, intent: 82, time: '1d',  notes: 'Asked about supplier price benchmarking.' },
+    { id: 9,  name: 'Rosa Mendoza',     phone: '+63 918 901 2345', source: 'csv',      product: 'Siomai Franchise',      stage: 'contacted', value: 200000, intent: 74, time: '5h',  notes: 'Comparing 3 franchise options. Send franchise deck.' },
+    { id: 10, name: 'Daniel Cruz',      phone: '+63 919 012 3456', source: 'fb-ads',   product: 'Construction Manpower', stage: 'new',       value: 450000, intent: 66, time: '8m',  notes: 'Inquiry about crew payroll tracking.' },
+    { id: 11, name: 'Michelle Ong',     phone: '+63 916 123 8901', source: 'manual',   product: 'Retail Store',          stage: 'proposal',  value: 180000, intent: 88, time: '2d',  notes: 'Needs custom dashboard. Sent proposal v2.' },
+    { id: 12, name: 'Paolo Villanueva', phone: '+63 915 234 9012', source: 'csv',      product: 'Printing Business',     stage: 'won',       value: 75000,  intent: 80, time: '2w',  notes: 'Renewed for another quarter.' },
+    { id: 13, name: 'Liza Ramirez',     phone: '+63 917 345 6781', source: 'fb-ads',   product: 'Siomai Franchise',      stage: 'lost',      value: 100000, intent: 40, time: '4d',  notes: 'Went with a competitor. Keep in nurture list.' },
+  ];
+  let nextId = 100;
+  let state = { tab: 'leads', srcFilter: 'all', stageFilter: 'all', query: '', detailId: null, importedCount: 0, fuQuery: '', fuSort: 'order',
+  links: [],
+  proposals: [],
+  };
+  let pipeSort = 'newest';
+
+  // template usage counters: real local counts, sample seed only in demo mode
+  const SEED_USES = { t1: 42, t2: 31, t3: 27, t4: 18 };
+  const tplUses = id => {
+    let n = 0;
+    try { n = (JSON.parse(localStorage.getItem('waaida-tpl-uses') || '{}')[id] || 0); } catch (e) {}
+    return n + (backendUrl ? 0 : (SEED_USES[id] || 0));
+  };
+  const bumpTplUse = id => {
+    let m = {};
+    try { m = JSON.parse(localStorage.getItem('waaida-tpl-uses') || '{}') || {}; } catch (e) {}
+    m[id] = (m[id] || 0) + 1;
+    try { localStorage.setItem('waaida-tpl-uses', JSON.stringify(m)); } catch (e) {}
+    backendCall({ action: 'tpl_use', id, base: m[id] }).then(res => {
+      if (res && res.uses != null && res.uses !== m[id]) {
+        m[id] = res.uses;
+        try { localStorage.setItem('waaida-tpl-uses', JSON.stringify(m)); } catch (e) {}
+        const u = document.querySelector('[data-uses="' + id + '"]');
+        if (u) u.textContent = 'used ' + res.uses + '×';
+      }
+    }).catch(() => {});
+  };
+  let SCHEDULED = [];
+  try { SCHEDULED = JSON.parse(localStorage.getItem('waaida-scheduled') || '[]'); } catch (e) {}
+  let pendingSched = null;
+  let editingTpl = null;
+  let linkChannel = 'whatsapp';
+  const fmtWhen = ts => {
+    const d = new Date(ts); const now = new Date();
+    const tmrw = new Date(now.getTime() + 86400000);
+    const t = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    if (d.toDateString() === now.toDateString()) return 'Today ' + t;
+    if (d.toDateString() === tmrw.toDateString()) return 'Tomorrow ' + t;
+    return d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ', ' + t;
+  };
+  const toLocalInput = d => {
+    const p = n => String(n).padStart(2, '0');
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + 'T' + p(d.getHours()) + ':' + p(d.getMinutes());
+  };
+
+  const TEMPLATES = [
+    { id: 't1', name: 'First touch',  uses: 42, body: 'Hi {name}! Thanks for reaching out about {product}. I can send a quick quote today — would you like that?' },
+    { id: 't2', name: 'Promo nudge',  uses: 31, body: 'Hi {name}, quick follow-up on your {product} inquiry. Our promo ends Friday — want me to reserve your slot?' },
+    { id: 't3', name: 'Price list',   uses: 27, body: 'Hi {name}! Here is the price list you asked for. Happy to walk you through it on a call.' },
+    { id: 't4', name: 'Warm follow-up', uses: 18, body: 'Hi {name}! Just checking in — did you get a chance to review the quote for {product}?' },
+  ];
+
+  // Editable templates (V19.2): defaults live in code, user edits layer on top.
+  // Edits persist locally AND in a Templates tab on the sheet (survives cache clears).
+  let TPL_EDITS = {};
+  try { TPL_EDITS = JSON.parse(localStorage.getItem('waaida-tpl-edit') || '{}'); } catch (e) {}
+  const saveTplEdits = () => localStorage.setItem('waaida-tpl-edit', JSON.stringify(TPL_EDITS));
+  const tplAll = () => TEMPLATES.map(t => TPL_EDITS[t.id] ? { ...t, name: TPL_EDITS[t.id].name, body: TPL_EDITS[t.id].body, edited: 1 } : t);
+  const tplFind = id => tplAll().find(t => t.id === id) || TEMPLATES[0];
+  function tplSyncRemote() {
+    backendCall({ action: 'tpl_list' }).then(rows => {
+      if (!Array.isArray(rows)) return;
+      let tomb = []; try { tomb = JSON.parse(localStorage.getItem('waaida-tpl-tomb') || '[]'); } catch (e) {}
+      let dirty = false;
+      let uses = {};
+      try { uses = JSON.parse(localStorage.getItem('waaida-tpl-uses') || '{}') || {}; } catch (e) {}
+      rows.forEach(r => {
+        if (!r || !r.id || tomb.indexOf(String(r.id)) >= 0) return;
+        if (Number(r.uses) || 0) {
+          const ru = Number(r.uses);
+          if (ru > (uses[r.id] || 0)) { uses[r.id] = ru; dirty = true; }
+        }
+        const cur = TPL_EDITS[r.id];
+        if (!cur || (Number(new Date(r.updated).getTime()) || 0) > (Number(cur.at) || 0)) {
+          TPL_EDITS[r.id] = { name: r.name, body: r.body, at: Number(new Date(r.updated).getTime()) || Date.now(), synced: '1' };
+          dirty = true;
+        }
+      });
+      if (Object.keys(uses).length) localStorage.setItem('waaida-tpl-uses', JSON.stringify(uses));
+      if (dirty) { saveTplEdits(); renderFollowup(); }
+    }).catch(() => {});
+  }
+
+  const KPI = {
+    '7d':  { leads: '14',  leadsD: '+6 vs prev', conv: '16%', convD: '+1 pt', resp: '1.6h', respD: '−0.3h', value: '₱640K', valueD: '+9%' },
+    '30d': { leads: '47',  leadsD: '+12%',       conv: '18%', convD: '+2 pt', resp: '1.2h', respD: '−0.4h', value: '₱2.4M', valueD: '+8%' },
+    '90d': { leads: '128', leadsD: '+21%',       conv: '17%', convD: '+1 pt', resp: '1.4h', respD: '−0.2h', value: '₱5.9M', valueD: '+14%' },
+  };
+  const FUNNEL = [
+    { stage: 'New',       n: 47, color: '#16213e' },
+    { stage: 'Contacted', n: 32, color: '#007aff' },
+    { stage: 'Qualified', n: 18, color: '#f59e0b' },
+    { stage: 'Proposal',  n: 9,  color: '#128c7e' },
+    { stage: 'Won',       n: 5,  color: '#1b5e20' },
+  ];
+  const SOURCES = [
+    { label: 'FB Ads',       pct: 58, color: '#007aff' },
+    { label: 'Manual',       pct: 22, color: '#16213e' },
+    { label: 'CSV / Sheets', pct: 20, color: '#f59e0b' },
+  ];
+  const TREND = { '7d': [9,12,8,14,11,16,13], '30d': [31,38,29,44,47,42,40], '90d': [88,96,101,112,128,121,124] };
+  const TREND_LABELS = { '7d': ['Aug 6','Aug 7','Aug 8','Aug 9','Aug 10','Aug 11','Aug 12'], '30d': ['W1','W2','W3','W4'], '90d': ['Jun','Jul','Aug'] };
+
+  /* ══════════ HELPERS ══════════ */
+  const $ = sel => document.querySelector(sel);
+  const el = (tag, cls, html) => { const n = document.createElement(tag); if (cls) n.className = cls; if (html !== undefined) n.innerHTML = html; return n; };
+  const initials = name => name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const digits = phone => String(phone || '').replace(/\D/g, '').replace(/^0/, '63');
+  const waLink = (phone, text) => 'https://wa.me/' + digits(phone) + '?text=' + encodeURIComponent(text);
+  // Reliable external openers: Android uses intent: so the WhatsApp app
+  // (or a chooser: WhatsApp / WhatsApp Business) really opens — window.open
+  // can be silently blocked and wa.me can fall back to web.whatsapp.com.
+  const IS_ANDROID = /android/i.test(navigator.userAgent);
+  function waOpen(phone, text) {
+    const d = digits(phone);
+    const wa = 'https://wa.me/' + d + '?text=' + encodeURIComponent(text);
+    if (IS_ANDROID) {
+      const intent = 'intent://send?phone=' + d + '&text=' + encodeURIComponent(text) + '#Intent;scheme=whatsapp;S.browser_fallback_url=' + encodeURIComponent(wa) + ';end';
+      try { location.href = intent; return; } catch (e) { /* fall through to window.open */ }
+    }
+    window.open(wa, '_blank', 'noopener');
+  }
+  function viberOpen(phone) {
+    const u = 'viber://chat?number=%2B' + digits(phone);
+    try { location.href = u; } catch (e) { window.open(u, '_blank', 'noopener'); }
+  }
+
+  let toastTimer = null;
+  function toast(msg, cls) {
+    const t = $('#toast');
+    t.textContent = msg; t.className = 'toast show' + (cls ? ' ' + cls : '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+  }
+
+  function badge(cls, label) {
+    return `<span class="badge b-src ${cls}"><span class="dot" aria-hidden="true"></span>${label}</span>`;
+  }
+  function stagePill(stage) {
+    const s = STAGES[stage];
+    const soft = stage === 'qualified' ? '#fdf1d9' : stage === 'contacted' ? '#e8f1ff' : stage === 'proposal' ? '#e0f5f1' : stage === 'won' ? '#e6f3e6' : stage === 'lost' ? '#fbeae4' : '#eaeef7';
+    const ink = stage === 'qualified' ? '#7c4a03' : stage === 'new' ? '#16213e' : stage === 'contacted' ? '#0056c7' : stage === 'proposal' ? '#0c6b5d' : stage === 'won' ? '#1b5e20' : '#a13e1e';
+    return `<span class="stage-pill" style="background:${soft};color:${ink};">${s.label}</span>`;
+  }
+  function linkIcon() {
+    return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12 20 4l-4 16-4-6-6-2z"/></svg>`;
+  }
+  function channelLabel(ch) {
+    return ch === 'whatsapp' ? 'WhatsApp' : (ch === 'email' ? 'Email' : (ch === 'viber' ? 'Viber' : 'SMS'));
+  }
+  function linksHtml(l) {
+    const links = state.links.filter(x => String(x.leadId) === String(l.id));
+    if (!links.length) return '<p class="muted" style="margin:0;font-size:13px;">No links sent yet. Send your landing page or proposal link to track opens.</p>';
+    return links.map(ln => {
+      const opens = ln.opens || [];
+      const first = opens.length ? new Date(opens[0].ts).getTime() : 0;
+      const last = opens.length ? new Date(opens[opens.length - 1].ts).getTime() : 0;
+      const dwell = first && last ? Math.round((last - first) / 1000) : 0;
+      const fmtDwell = s => s >= 60 ? Math.floor(s / 60) + 'm ' + (s % 60) + 's' : '~' + s + 's';
+      const status = !opens.length
+        ? '<span class="badge b-src csv">Not opened yet</span>'
+        : '<span class="badge b-src wa">Opened · ' + opens.length + ' view' + (opens.length > 1 ? 's' : '') + (dwell > 2 ? ' · ' + fmtDwell(dwell) : '') + '</span>';
+      const short = String(ln.url || '').replace(/^https?:\/\//i, '').slice(0, 44);
+      return '<div class="row-between" style="padding:9px 0;border-bottom:1px solid var(--border);">' +
+        '<div style="min-width:0;margin-right:10px;">' +
+        '<div style="font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(short) + '</div>' +
+        '<div class="meta">' + channelLabel(ln.channel) + (first ? ' · sent ' + relTime(opens[0].ts) + ' ago' : '') + '</div></div>' +
+        status + '</div>';
+    }).join('');
+  }
+  function waIcon() {
+    return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.04 2a9.9 9.9 0 0 0-8.5 15.03L2 22l5.1-1.5A9.93 9.93 0 1 0 12.04 2zm5.8 14.06c-.25.7-1.45 1.34-2 1.38-.54.05-1.02.24-3.44-.72-2.9-1.16-4.75-4.15-4.9-4.34-.14-.19-1.17-1.56-1.17-2.97s.74-2.1 1-2.4c.26-.29.57-.36.76-.36h.55c.18 0 .42-.06.65.5.25.6.82 2.1.9 2.25.07.15.12.33.02.53-.1.2-.15.32-.29.5-.15.17-.3.38-.43.5-.15.14-.3.3-.13.6.18.28.77 1.27 1.66 2.05 1.14 1.01 2.1 1.33 2.4 1.48.3.14.47.12.64-.07.18-.2.74-.86.94-1.16.2-.3.4-.25.66-.15.27.1 1.72.81 2.02.96.3.15.5.22.57.35.07.13.07.76-.18 1.46z"/></svg>`;
+  }
+
+  /* ═══════════ RENDER: LEADS ═══════════ */
+  function filteredLeads() {
+    return leads.filter(l => {
+      if (state.srcFilter !== 'all' && l.source !== state.srcFilter) return false;
+      if (state.stageFilter !== 'all' && l.stage !== state.stageFilter) return false;
+      if (state.query) {
+        const q = state.query.toLowerCase();
+        if (!l.name.toLowerCase().includes(q) && !l.phone.replace(/\s/g,'').includes(q.replace(/\s/g,''))) return false;
+      }
+      return true;
+    });
+  }
+
+  function renderLeads() {
+    const list = $('#lead-list');
+    const rows = filteredLeads();
+    list.innerHTML = '';
+    if (loadingSheet) {
+      const card = el('div', 'card state-card');
+      card.innerHTML = `
+        <div class="ic"><svg class="spin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 9 9"/></svg></div>
+        <h3>Syncing from your sheet…</h3>
+        <p>Pulling your leads from Google Sheets.</p>`;
+      list.appendChild(card);
+      return;
+    }
+    if (rows.length === 0) {
+      const card = el('div', 'card state-card');
+      card.innerHTML = `
+        <div class="ic"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></div>
+        <h3>No leads found</h3>
+        <p>${state.query ? 'Nothing matches "' + esc(state.query) + '". Try a different name or phone.' : (backendUrl ? 'Your sheet is empty — add leads in Google Sheets, then tap Download, or add one manually.' : 'No leads from this source yet. Import a spreadsheet or add one manually.')}</p>
+        <div class="stack" style="gap:8px;margin-top:4px;">
+          ${backendUrl ? '<button class="btn-secondary" id="empty-retry" style="max-width:200px;margin-inline:auto;">Try again</button>' : ''}
+          <button class="btn-secondary" id="empty-clear" style="max-width:200px;margin-inline:auto;">${state.query ? 'Clear search' : 'Clear filters'}</button>
+        </div>`;
+      list.appendChild(card);
+      const retry = $('#empty-retry');
+      if (retry) retry.addEventListener('click', () => loadFromSheet(false).catch(() => {}));
+      const btn = $('#empty-clear');
+      if (btn) btn.addEventListener('click', () => { state.query = ''; state.srcFilter = 'all'; $('#lead-search').value = ''; syncChips(); renderLeads(); });
+      return;
+    }
+    rows.forEach(l => {
+      const row = el('div', 'lead-row');
+      row.setAttribute('role', 'button');
+      row.setAttribute('tabindex', '0');
+      row.setAttribute('aria-label', l.name + ', ' + l.product + ', ' + l.time + ' ago');
+      const src = SRC[l.source] || SRC.manual;
+      const avCls = l.source === 'whatsapp' ? 'avatar wa' : 'avatar';
+      row.innerHTML = `
+        <div class="${avCls}">${esc(initials(l.name))}</div>
+        <div class="body">
+          <div class="title">${esc(l.name)}</div>
+          <div class="sub">${esc(l.product)} · ${esc(src.label)} · ${esc(l.time)} ago</div>
+        </div>
+        <div class="right">
+          ${stagePill(l.stage)}
+          <button class="wa-btn" data-wa="${l.id}" aria-label="WhatsApp ${esc(l.name)}" title="Open WhatsApp">${waIcon()}</button>
+        </div>`;
+      row.addEventListener('click', () => openDetail(l.id));
+      row.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDetail(l.id); } });
+      row.querySelector('.wa-btn').addEventListener('click', e => { e.stopPropagation(); sendWhatsApp(l); });
+      list.appendChild(row);
+    });
+  }
+
+  /* ═══════════ RENDER: PIPELINE ═══════════ */
+  function renderPipeline() {
+    if (backendUrl) {
+      const won = leads.filter(l => l.stage === 'won').length;
+      const total = leads.length;
+      const val = leads.reduce((a, l) => a + (Number(l.value) || 0), 0);
+      const v = $('#pipe-value'); if (v) v.textContent = PESO(val);
+      const r = $('#pipe-rate'); if (r) r.textContent = (total ? Math.round(won / total * 100) : 0) + '%';
+      const w = $('#pipe-won'); if (w) w.textContent = 'Won deals this month: ' + won + ' · target 8';
+    }
+    const sum = $('#stage-summary');
+    sum.innerHTML = '';
+    const counts = {};
+    STAGE_ORDER.forEach(s => counts[s] = leads.filter(l => l.stage === s).length);
+    const chip = el('button', 's-chip' + (state.stageFilter === 'all' ? ' active' : ''));
+    chip.innerHTML = `<div class="n">${leads.length}</div><div class="l"><span class="dot" style="background:#8a94ad;"></span>All deals</div>`;
+    chip.addEventListener('click', () => { state.stageFilter = 'all'; renderPipeline(); });
+    sum.appendChild(chip);
+    STAGE_ORDER.forEach(s => {
+      const st = STAGES[s];
+      const c = el('button', 's-chip' + (state.stageFilter === s ? ' active' : ''));
+      c.innerHTML = `<div class="n">${counts[s]}</div><div class="l"><span class="dot" style="background:${st.color};"></span>${st.label}</div>`;
+      c.addEventListener('click', () => { state.stageFilter = state.stageFilter === s ? 'all' : s; renderPipeline(); });
+      sum.appendChild(c);
+    });
+
+    const boards = $('#boards');
+    boards.innerHTML = '';
+    STAGE_ORDER.forEach(s => {
+      if (state.stageFilter !== 'all' && state.stageFilter !== s) return;
+      const st = STAGES[s];
+      const deals0 = leads.filter(l => l.stage === s);
+      let deals = deals0;
+      if (pipeSort === 'value') deals = deals0.slice().sort((a, b) => (Number(b.value) || 0) - (Number(a.value) || 0));
+      else if (pipeSort === 'name') deals = deals0.slice().sort((a, b) => a.name.localeCompare(b.name));
+      const col = el('div', 'board');
+      col.setAttribute('aria-label', st.label + ' stage');
+      const total = deals.reduce((a, l) => a + l.value, 0);
+      col.innerHTML = `<div class="board-head"><span class="l"><span class="dot" style="background:${st.color};"></span>${st.label}</span><span class="cnt">${deals.length} · ${PESO(total)}</span></div>`;
+      if (deals.length === 0) {
+        col.innerHTML += `<div class="board empty">No deals here yet.</div>`;
+      } else {
+        deals.forEach(l => {
+          const d = el('div', 'deal');
+          d.setAttribute('role', 'button'); d.setAttribute('tabindex', '0');
+          d.setAttribute('aria-label', l.name + ' · ' + l.product);
+          d.innerHTML = `
+            <div class="d-name">${esc(l.name)}</div>
+            <div class="d-sub">${esc(l.product)} · ${esc(SRC[l.source].label)}</div>
+            <div class="d-foot"><span class="d-val">${PESO(l.value)}</span><span class="meta">${l.time} ago</span></div>`;
+          const open = () => openDetail(l.id);
+          d.addEventListener('click', open);
+          d.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+          col.appendChild(d);
+        });
+      }
+      boards.appendChild(col);
+    });
+  }
+
+  /* ═══════════ RENDER: FOLLOW-UP ═══════════ */
+  function renderFollowup() {
+    migrateSchedules();
+    const sc = $('#scheduled-card');
+    if (SCHEDULED.length === 0) {
+      sc.innerHTML = `<div class="muted" style="font-size:13px;">Nothing scheduled. Pick a template and press <strong>Schedule</strong>.</div>`;
+    } else {
+      sc.innerHTML = SCHEDULED.map(s => `
+        <div class="row-between" data-sched-i="${SCHEDULED.indexOf(s)}" role="button" tabindex="0" title="Tap to remove" style="padding:8px 0;border-bottom:1px solid var(--border);${SCHEDULED.indexOf(s) === SCHEDULED.length - 1 ? 'border-bottom:0;' : ''}">
+          <div>
+            <div style="font-size:13px;font-weight:700;">${esc(s.name)}</div>
+            <div class="meta">${esc(s.what)}</div>
+          </div>
+          <span class="badge b-src manual" style="font-size:10px;">${esc(s.when)}</span>
+        </div>`).join('');
+    }
+    const tl = $('#tpl-list');
+    tl.innerHTML = '';
+    // SEND TO chips: pick which lead the templates message
+    let fuLeadId = parseInt(localStorage.getItem('waaida-fu-lead') || '0', 10);
+    const fuBox = $('#fu-targets');
+    fuBox.innerHTML = '';
+    const q = (state.fuQuery || '').trim().toLowerCase();
+    let pool = leads.filter(l => !q || l.name.toLowerCase().includes(q));
+    if (state.fuSort === 'az') pool = pool.slice().sort((a, b) => a.name.localeCompare(b.name));
+    pool.forEach(l => {
+      const chip = el('button', 'chip' + (l.id === fuLeadId ? ' active' : ''));
+      chip.textContent = l.name.split(' ')[0];
+      chip.title = 'Message ' + l.name;
+      chip.addEventListener('click', () => {
+        localStorage.setItem('waaida-fu-lead', String(l.id));
+        renderFollowup();
+        toast('Sending to ' + l.name.split(' ')[0] + '…');
+      });
+      fuBox.appendChild(chip);
+    });
+    const sendTemplate = (t) => {
+      const target = leads.find(l => l.id === fuLeadId) || leads[0];
+      if (!target) { toast('Add a lead first — nothing to message yet', 'error'); return; }
+      const msg = t.body.replace('{name}', target.name.split(' ')[0]).replace('{product}', target.product);
+      waOpen(target.phone, msg);
+      toast('Opening WhatsApp for ' + target.name.split(' ')[0] + '…');
+      bumpTplUse(t.id);
+      const u = tl.querySelector('[data-uses="' + t.id + '"]');
+      if (u) u.textContent = 'used ' + tplUses(t.id) + '×';
+    };
+    // search + sort listeners (bind once)
+    const fuSearch = $('#fu-search');
+    if (fuSearch && !fuSearch.dataset.bound) {
+      fuSearch.dataset.bound = '1';
+      fuSearch.addEventListener('input', () => { state.fuQuery = fuSearch.value; renderFollowup(); });
+    }
+    const fuSortBtn = $('#fu-sort');
+    if (fuSortBtn && !fuSortBtn.dataset.bound) {
+      fuSortBtn.dataset.bound = '1';
+      fuSortBtn.addEventListener('click', () => {
+        state.fuSort = state.fuSort === 'az' ? 'order' : 'az';
+        renderFollowup();
+        toast(state.fuSort === 'az' ? 'Leads sorted A-Z' : 'Leads in original order');
+      });
+    }
+    TEMPLATES.forEach(t => {
+      const card = el('div', 'tpl');
+      card.setAttribute('role', 'button');
+      card.setAttribute('tabindex', '0');
+      card.setAttribute('aria-label', 'Use template ' + t.name);
+      card.innerHTML = `
+        <div class="t-name">${esc(t.name)}<span class="meta" data-uses="${t.id}">used ${tplUses(t.id)}×${t.edited ? ' · edited' : ''}</span></div>
+        <div class="t-body">"${esc(t.body)}"</div>
+        <div class="t-acts">
+          <button class="mini-btn wa" data-tpl-send="${t.id}">${waIcon().replace('<svg', '<svg style="width:15px;height:15px;"')} Send on WhatsApp</button>
+          <button class="mini-btn" data-tpl-copy="${t.id}"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg> Copy</button>
+          <button class="mini-btn" data-tpl-sched="${t.id}"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg> Schedule</button>
+          <button class="mini-btn" data-tpl-edit="${t.id}"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Edit</button>
+        </div>`;
+      card.addEventListener('click', () => sendTemplate(t));
+      card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); sendTemplate(t); } });
+      tl.appendChild(card);
+    });
+    tl.querySelectorAll('[data-tpl-send]').forEach(b => b.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const t = tplAll().find(x => x.id === b.dataset.tplSend);
+      if (t) sendTemplate(t);
+    }));
+    tl.querySelectorAll('[data-tpl-copy]').forEach(b => b.addEventListener('click', () => {
+      const t = tplAll().find(x => x.id === b.dataset.tplCopy);
+      const msg = t.body.replace('{name}', '[first name]').replace('{product}', '[product]');
+      if (navigator.clipboard) { navigator.clipboard.writeText(msg).then(() => toast('Template copied', 'success')); }
+      else toast('Template copied', 'success');
+    }));
+    tl.querySelectorAll('[data-tpl-sched]').forEach(b => b.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const t = tplAll().find(x => x.id === b.dataset.tplSched);
+      const target = leads.find(l => l.id === fuLeadId) || leads[0];
+      if (!target) { toast('Add a lead first — nothing to schedule', 'error'); return; }
+      pendingSched = { t, target };
+      $('#sched-info').textContent = t.name + ' → ' + target.name;
+      const dflt = new Date(Date.now() + 60 * 60000);
+      $('#sched-dt').value = toLocalInput(dflt);
+      openSheet('sheet-sched');
+    }));
+    tl.querySelectorAll('[data-tpl-edit]').forEach(b => b.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const t = tplAll().find(x => x.id === b.dataset.tplEdit);
+      if (!t) return;
+      editingTpl = t.id;
+      $('#tpl-name').value = t.name;
+      $('#tpl-body').value = t.body;
+      $('#tpl-reset').style.display = TPL_EDITS[t.id] ? '' : 'none';
+      openSheet('sheet-tpl');
+    }));
+    // tap a scheduled row to remove it (bind once)
+    if (sc && !sc.dataset.boundSched) {
+      sc.dataset.boundSched = '1';
+      sc.addEventListener('click', (e) => {
+        const row = e.target.closest('[data-sched-i]');
+        if (!row) return;
+        const idx = Number(row.dataset.schedI);
+        const removed = SCHEDULED.splice(idx, 1)[0];
+        localStorage.setItem('waaida-scheduled', JSON.stringify(SCHEDULED));
+        if (removed && removed.id) backendCall({ action: 'fu_del', id: removed.id }).catch(() => {});
+        renderFollowup();
+        toast('Removed scheduled follow-up', 'success');
+      });
+    }
+    // Follow-up tab badge: count items due within 24h (or overdue up to 7d)
+    const fuTabBtn = document.querySelector('.tab[data-tab="followup"]');
+    if (fuTabBtn) {
+      const now = Date.now();
+      const due = SCHEDULED.filter(x => x.ts && x.ts - now <= 24 * 3600 * 1000 && now - x.ts <= 7 * 24 * 3600 * 1000).length;
+      let b = fuTabBtn.querySelector('.fu-badge');
+      if (due > 0) {
+        if (!b) { b = document.createElement('span'); b.className = 'fu-badge'; fuTabBtn.style.position = 'relative'; fuTabBtn.appendChild(b); }
+        b.textContent = String(due);
+        b.style.cssText = 'position:absolute;top:4px;left:50%;margin-left:2px;min-width:15px;height:15px;line-height:15px;border-radius:8px;background:#c75b39;color:#fff;font-size:10px;font-weight:700;text-align:center;padding:0 4px;';
+      } else if (b) b.remove();
+    }
+  }
+
+  // One-time sync: push old localStorage-only schedules to the sheet (V19)
+  function migrateSchedules() {
+    let dirty = false;
+    SCHEDULED.forEach(x => {
+      if (!x.id) { x.id = 'F' + Date.now() + Math.floor(Math.random() * 999); dirty = true; }
+      if (x.synced) return;
+      x.synced = '1'; dirty = true;
+      const lead = leads.find(l => (l.name.split(' ')[0] || '') === x.name) || leads.find(l => (l.name || '').indexOf(x.name) === 0);
+      backendCall({ action: 'fu_save', id: x.id, leadId: lead ? lead.id : '', name: lead ? lead.name : x.name, phone: (lead && lead.phone) || x.phone || '', what: x.what || '', when: x.ts || 0 })
+        .catch(() => { x.synced = ''; localStorage.setItem('waaida-scheduled', JSON.stringify(SCHEDULED)); });
+    });
+    if (dirty) localStorage.setItem('waaida-scheduled', JSON.stringify(SCHEDULED));
+  }
+
+  /* ═══════════ RENDER: ANALYTICS ═══════════ */
+  function realMetrics() {
+    const byStage = {}; STAGE_KEYS.forEach(s => byStage[s] = 0);
+    const bySrc = { 'fb-ads': 0, manual: 0, csv: 0, whatsapp: 0 };
+    leads.forEach(l => { if (byStage[l.stage] !== undefined) byStage[l.stage]++; if (bySrc[l.source] !== undefined) bySrc[l.source]++; });
+    const total = leads.length;
+    return { total, won: byStage.won, conv: total ? Math.round(byStage.won / total * 100) + '%' : '0%', value: leads.reduce((a, l) => a + (Number(l.value) || 0), 0), byStage, bySrc };
+  }
+
+  function realTrend(range) {
+    const now = Date.now();
+    const bins = range === '7d' ? Array(7).fill(0) : (range === '30d' ? Array(5).fill(0) : Array(3).fill(0));
+    const span = range === '7d' ? 1 : (range === '30d' ? 6 : 30);
+    leads.forEach(l => {
+      const t = l.created ? new Date(l.created).getTime() : NaN;
+      if (isNaN(t)) return;
+      const day = Math.floor((now - t) / 86400000);
+      const total = bins.length * span;
+      if (day >= 0 && day < total) bins[bins.length - 1 - Math.floor(day / span)]++;
+    });
+    return bins;
+  }
+  function realTrendLabels(range) {
+    if (range === '7d') {
+      const out = [];
+      for (let i = 6; i >= 0; i--) { const d = new Date(Date.now() - i * 86400000); out.push((d.getMonth() + 1) + '/' + d.getDate()); }
+      return out;
+    }
+    if (range === '30d') return ['5w ago', '4w ago', '3w ago', '2w ago', 'This wk'];
+    return ['3mo ago', '2mo ago', 'This mo'];
+  }
+
+  function renderAnalytics(range) {
+    const body = $('#analytics-body');
+    body.innerHTML = '';
+    const real = !!backendUrl;
+    const m = real ? realMetrics() : null;
+    const k = KPI[range];
+    const trend = real ? realTrend(range) : TREND[range];
+    const max = Math.max(1, ...trend);
+    const labels = real ? realTrendLabels(range) : TREND_LABELS[range];
+    const funnel = real
+      ? STAGE_KEYS.map(s => ({ stage: STAGES[s].label, n: m.byStage[s], color: STAGES[s].color }))
+      : FUNNEL;
+    const maxF = Math.max(1, ...funnel.map(f => f.n));
+    const sources = real
+      ? [
+          { label: 'FB Ads', pct: m.total ? Math.round(m.bySrc['fb-ads'] / m.total * 100) : 0, color: '#007aff' },
+          { label: 'Manual', pct: m.total ? Math.round(m.bySrc.manual / m.total * 100) : 0, color: '#16213e' },
+          { label: 'CSV / Sheets', pct: m.total ? Math.round(m.bySrc.csv / m.total * 100) : 0, color: '#f59e0b' },
+        ]
+      : SOURCES;
+    const total = sources.reduce((a, s) => a + s.pct, 0);
+    let donut = '';
+    let acc = 0;
+    sources.forEach((s) => {
+      const start = acc / Math.max(1, total) * 100;
+      const seg = s.pct / Math.max(1, total) * 100;
+      donut += `<circle cx="42" cy="42" r="15.9155" fill="none" stroke="${s.color}" stroke-width="10" stroke-dasharray="${seg.toFixed(2)} ${(100 - seg).toFixed(2)}" stroke-dashoffset="${(-start).toFixed(2)}" transform="rotate(-90 42 42)"/>`;
+      acc += s.pct;
+    });
+    body.innerHTML = `
+      <div class="pad grid-2" style="margin-bottom:12px;">
+        <div class="kpi"><div class="v">${real ? m.total : k.leads}</div><div class="l">New leads</div><div class="d up">${real ? 'live' : k.leadsD}</div></div>
+        <div class="kpi"><div class="v">${real ? m.conv : k.conv}</div><div class="l">Conversion</div><div class="d up">${real ? 'won / total' : k.convD}</div></div>
+        <div class="kpi"><div class="v">${real ? '—' : k.resp}</div><div class="l">Avg response</div><div class="d up">${real ? 'not tracked yet' : k.respD}</div></div>
+        <div class="kpi"><div class="v">${real ? PESO(m.value) : k.value}</div><div class="l">Pipeline value</div><div class="d up">${real ? 'live' : k.valueD}</div></div>
+      </div>
+      <div class="pad" style="margin-bottom:12px;">
+        <div class="chart-card">
+          <h3>Funnel conversion</h3><div class="sub">${real ? 'Live counts by stage from your sheet' : 'Leads moving through stages · last 30 days'}</div>
+          ${funnel.map((f) => {
+            const pct = Math.round(f.n / maxF * 100);
+            return `<div class="funnel-row"><span class="stage-l">${f.stage}</span><div class="funnel-track"><div class="funnel-fill" style="width:${pct}%;background:${f.color};"></div></div><span class="n">${f.n}</span></div>`;
+          }).join('')}
+        </div>
+      </div>
+      <div class="pad" style="margin-bottom:12px;">
+        <div class="chart-card">
+          <h3>Leads by source</h3><div class="sub">${real ? 'Live split from your sheet' : 'Where your pipeline comes from'}</div>
+          <div class="donut-wrap">
+            <svg viewBox="0 0 84 84" width="110" height="110" role="img" aria-label="Leads by source">${donut}</svg>
+            <div class="legend">
+              ${sources.map(s => `<div class="li"><span class="sw" style="background:${s.color};"></span>${s.label}<span class="pct">${s.pct}%</span></div>`).join('')}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="pad" style="margin-bottom:8px;">
+        <div class="chart-card">
+          <h3>New leads · trend</h3><div class="sub">${range === '7d' ? 'Daily' : range === '30d' ? 'Weekly' : 'Monthly'} · sample data</div>
+          <svg viewBox="0 0 320 110" width="100%" height="120" role="img" aria-label="Line chart of new leads over time">
+            <polyline fill="none" stroke="#1b5e20" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+              points="${trend.map((v, i) => `${(i * (300 / (trend.length - 1)) + 10)},${96 - (v / max) * 78}`).join(' ')}"/>
+            <polyline fill="url(#tg)" stroke="none"
+              points="10,96 ${trend.map((v, i) => `${(i * (300 / (trend.length - 1)) + 10)},${96 - (v / max) * 78}`).join(' ')} 310,96"/>
+            <defs><linearGradient id="tg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b5e20" stop-opacity="0.22"/><stop offset="1" stop-color="#1b5e20" stop-opacity="0"/></linearGradient></defs>
+            ${labels.map((l, i) => {
+              const x = i * (300 / (labels.length - 1)) + 10;
+              return `<text x="${x}" y="110" text-anchor="middle" font-size="9" fill="#8a94ad" font-family="ui-monospace,monospace">${l}</text>`;
+            }).join('')}
+          </svg>
+        </div>
+      </div>
+      <p class="meta" style="text-align:center;margin:4px 20px 0;">${real ? 'KPIs &amp; funnel are live from your sheet · trend chart is sample data' : 'All figures are sample data for preview — wire to your real numbers later.'}</p>`;
+  }
+
+  function loadAnalytics(range) {
+    $('#analytics-body').innerHTML = `
+      <div class="pad grid-2" style="margin-bottom:12px;">
+        ${'<div class="kpi"><div class="skel" style="height:34px;width:70%;"></div><div class="skel" style="height:12px;width:50%;margin-top:8px;"></div></div>'.repeat(4)}
+      </div>
+      <div class="pad"><div class="skel" style="height:150px;"></div></div>`;
+    setTimeout(() => renderAnalytics(range), 620);
+  }
+
+  /* ═══════════ RENDER: AI ═══════════ */
+  const AI_REPLIES = {
+    draft: (l) => `Here is a draft follow-up for ${l.name}:
+
+"Hi ${l.name.split(' ')[0]}! Thanks for your interest in a ${l.product}. I can send you our cost breakdown and ROI timeline today — shall I?"
+
+Tap Send on ${l.name.split(' ')[0]}'s lead page to fire it over WhatsApp.`,
+    score: () => {
+      const scored = leads.slice().sort((a, b) => (Number(b.intent) || 0) - (Number(a.intent) || 0)).slice(0, 3);
+      if (!scored.length) return 'No leads yet — add leads and I can score them.';
+      const lines = scored.map((l, i) => `${i + 1}. ${l.name} — ${Number(l.intent) || 0}/100 · ${l.product} (${(STAGES[l.stage] || { label: l.stage }).label.toLowerCase()})`);
+      return `Today's lead scores (0–100):\n${lines.join('\n')}\n\nTop pick: ${scored[0].name} — reply within 2 hours.`;
+    },
+    week: () => {
+      const day = 86400000;
+      const wkStart = new Date(); wkStart.setHours(0, 0, 0, 0); wkStart.setDate(wkStart.getDate() - wkStart.getDay());
+      const wkStartT = wkStart.getTime();
+      let thisW = 0, lastW = 0;
+      const srcCount = {};
+      leads.forEach(l => {
+        const t = l.created ? new Date(l.created).getTime() : NaN;
+        if (isNaN(t)) return;
+        if (t >= wkStartT) { thisW++; srcCount[l.source] = (srcCount[l.source] || 0) + 1; }
+        else if (t >= wkStartT - 7 * day) lastW++;
+      });
+      if (!thisW && !lastW) return 'Not enough history yet — leads need a created date for a week-over-week comparison. Keep adding leads with the capture time and check back.';
+      const delta = lastW ? Math.round((thisW - lastW) / lastW * 100) : (thisW ? 100 : 0);
+      const best = Object.keys(srcCount).sort((a, b) => srcCount[b] - srcCount[a])[0];
+      const won = leads.filter(l => l.stage === 'won' && l.created && new Date(l.created).getTime() >= wkStartT).length;
+      let out = `This week vs last:\n· ${thisW} new lead${thisW === 1 ? '' : 's'}${lastW ? ` (${delta >= 0 ? '+' : ''}${delta}%)` : ''}\n`;
+      if (best) out += `· Best source: ${(SRC[best] || { label: best }).label} (${srcCount[best]} this week)\n`;
+      out += `· Won this week: ${won}`;
+      return out;
+    },
+    default: `Got it. I can draft follow-up messages, score your leads, or summarize the week. Try one of the quick actions below, or ask me anything about your pipeline.`,
+  };
+  
+
+  function loadProposals() {
+    if (!backendUrl) { state.proposals = []; return Promise.resolve(); }
+    return backendCall({ action: 'proposal_list' }).then(rows => {
+      state.proposals = Array.isArray(rows) ? rows : [];
+    }).catch(() => { state.proposals = []; });
+  }
+
+  function propStatus(p) {
+    if (p.status === 'accepted') return { label: 'Accepted', bg: '#e6f3e6', ink: '#1b5e20' };
+    if (p.status === 'opened') return { label: 'Opened', bg: '#e8f1ff', ink: '#0056c7' };
+    return { label: 'Created', bg: '#eaeef7', ink: '#16213e' };
+  }
+  function proposalsHtml(l) {
+    const ps = state.proposals.filter(x => String(x.leadId) === String(l.id));
+    if (!ps.length) return '<p class="muted" style="margin:0;font-size:13px;">No proposals yet. Create a hosted proposal — you\'ll see when the client opens and accepts it.</p>';
+    return ps.map(p => {
+      const st = propStatus(p);
+      const amt = '₱' + Number(p.amount || 0).toLocaleString('en-PH');
+      const when = p.acceptedAt ? ' · accepted ' + relTime(p.acceptedAt)
+        : (p.openedAt ? ' · opened ' + relTime(p.openedAt) : ' · created ' + relTime(p.created));
+      return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">' +
+        '<div style="min-width:0;flex:1;">' +
+          '<div style="font-size:14px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(p.title) + '</div>' +
+          '<div class="meta" style="margin-top:2px;">' + amt + when + '</div>' +
+        '</div>' +
+        '<span class="stage-pill" style="background:' + st.bg + ';color:' + st.ink + ';">' + st.label + '</span>' +
+      '</div>';
+    }).join('');
+  }
+
+  function loadLinks() {
+    if (!backendUrl) { state.links = []; return Promise.resolve(); }
+    return backendCall({ action: 'links' }).then(rows => {
+      state.links = (Array.isArray(rows) ? rows : []).map(r => {
+        let opens = [];
+        try { const a = JSON.parse(r.opens || '[]'); if (Array.isArray(a)) opens = a; } catch (e) {}
+        return { id: r.id, leadId: r.leadId, url: r.url, channel: r.channel, created: r.created, opens };
+      });
+    }).catch(() => { state.links = []; });
+  }
+
+  function scrollChat() {
+    const c = document.querySelector('.content');
+    if (c) c.scrollTop = c.scrollHeight;
+  }
+  function pushChat(html, role) {
+    const chat = $('#chat');
+    const b = el('div', 'bubble ' + role);
+    b.innerHTML = html;
+    chat.appendChild(b);
+    scrollChat();
+    return b;
+  }
+  function aiReply(key) {
+    const typing = pushChat(`<span class="typing" aria-hidden="true"><i></i><i></i><i></i></span>`, 'ai');
+    setTimeout(() => {
+      let txt;
+      if (!leads.length) txt = 'No leads yet — add leads first and I can draft messages, score them, or summarize the week.';
+      else if (key === 'draft') txt = AI_REPLIES.draft(mostRecentLead());
+      else { const rep = AI_REPLIES[key] || AI_REPLIES.default; txt = typeof rep === 'function' ? rep() : rep; }
+      typing.innerHTML = esc(txt).replace(/\n/g, '<br>');
+      scrollChat();
+    }, 850);
+  }
+  let aiSeeded = false;
+  function renderAI() {
+    if (aiSeeded) return;
+    aiSeeded = true;
+    const chat = $('#chat');
+    chat.innerHTML = '';
+    const first = el('div', 'bubble ai');
+    const top = mostRecentLead();
+    const brief = top
+      ? `You have <strong>${leads.length} ${leads.length === 1 ? 'lead' : 'leads'}</strong> — <strong>${esc(top.name)}</strong> is your most recent${top.intent ? ' (intent ' + top.intent + ')' : ''}. Want me to draft a follow-up for ${esc(top.name.split(' ')[0])}?`
+      : 'You have no leads yet — add one and I can help you draft follow-ups.';
+    first.innerHTML = `Good morning! Here is your briefing:
+
+${brief}
+      <div class="chip-row">
+        <button class="ai-chip" data-ai="draft">Draft follow-up for ${top ? esc(top.name.split(' ')[0]) : 'a lead'}</button>
+        <button class="ai-chip" data-ai="score">Score today's leads</button>
+        <button class="ai-chip" data-ai="week">This week vs last</button>
+      </div>`;
+    chat.appendChild(first);
+    chat.querySelectorAll('[data-ai]').forEach(b => b.addEventListener('click', () => {
+      pushChat(esc(b.textContent), 'me');
+      aiReply(b.dataset.ai);
+    }));
+  }
+
+  /* ═══════════ RENDER: DETAIL ═══════════ */
+  function openDetail(id) {
+    const l = leads.find(x => x.id === id);
+    if (!l) return;
+    const prevProps = JSON.stringify(state.proposals);
+    loadProposals().then(() => {
+      if (state.detailId === id && state.tab === 'detail' && JSON.stringify(state.proposals) !== prevProps) openDetail(id);
+    }).catch(() => {});
+    state.detailId = id;
+    state.tab = 'detail';
+    syncViews();
+    const v = $('#view-detail');
+    const src = SRC[l.source] || SRC.manual;
+    const acts = (l.activity && l.activity.length) ? l.activity : [{ t: 'created', ts: l.created || '', label: 'Lead captured' }];
+    const actHtml = acts.map(a => {
+      const rt = a.ts ? relTime(a.ts) : '';
+      const when = rt === 'now' ? 'just now' : (rt ? rt + ' ago' : '');
+      const sub = a.t === 'created'
+        ? `From ${esc(src.label)}${when ? ' · ' + when : ''}`
+        : (when ? ((a.t === 'stage' ? 'Stage updated' : 'Note added') + ' · ' + when) : '');
+      return `<div class="act-item"><div class="a-title">${esc(a.label)}</div><div class="a-sub">${sub}</div></div>`;
+    }).join('');
+    v.innerHTML = `
+      <div class="header">
+        <button class="back-btn" id="detail-back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>Back</button>
+        <div class="row" style="gap:8px;">
+          <button class="icon-btn" id="detail-note" aria-label="Add note"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+          <button class="icon-btn" aria-label="More"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg></button>
+        </div>
+      </div>
+      <div class="detail-hero">
+        <div class="row" style="gap:16px;">
+          <div class="avatar ${l.source === 'whatsapp' ? 'wa' : ''}">${esc(initials(l.name))}</div>
+          <div style="min-width:0;">
+            <h1 class="h2" style="margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(l.name)}</h1>
+            <p class="muted" style="margin:3px 0 0;font-size:13px;">${esc(l.phone)}</p>
+            <div class="row" style="gap:6px;margin-top:7px;flex-wrap:wrap;">
+              ${badge(src.cls, src.label)}
+              ${stagePill(l.stage)}
+            </div>
+          </div>
+        </div>
+        <div class="grid-2" style="margin-top:14px;gap:8px;">
+          <div class="card flat" style="padding:10px 0;border:1px solid var(--border);border-radius:12px;padding:10px 12px;">
+            <div class="meta">INTEREST</div><div style="font-size:13px;font-weight:700;margin-top:2px;">${esc(l.product)}</div>
+          </div>
+          <div class="card flat" id="detail-value" role="button" tabindex="0" title="Tap to set deal value" style="padding:10px 12px;border:1px solid var(--border);border-radius:12px;cursor:pointer;">
+            <div class="meta">POTENTIAL VALUE ✎</div><div class="num" style="font-size:15px;font-weight:700;margin-top:2px;">${PESO(l.value)}</div>
+          </div>
+        </div>
+        <div class="row" style="margin-top:14px;gap:8px;">
+          <button class="btn-wa" style="flex:1.6;" id="detail-wa">${waIcon()} WhatsApp</button>
+          <button class="btn-secondary" style="flex:1;" id="detail-stage">Move</button>
+        </div>
+        <button class="btn-secondary" id="detail-link" style="margin-top:8px;width:100%;">${linkIcon()} Send link</button>
+        <div class="kpi" style="margin-top:12px;background:var(--accent-soft);border-color:transparent;">
+          <div class="row-between">
+            <div>
+              <div style="font-size:12px;font-weight:800;color:var(--accent);">AI · NEXT BEST ACTION</div>
+              <div style="font-size:13px;margin-top:3px;">Reply within 2h — intent ${l.intent}/100, asked about ${esc(l.product)}. Draft with the franchise deck attached.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="pad" style="margin-top:16px;">
+        <p class="meta" style="margin:0 0 12px;">TRACKED LINKS</p>
+        <div class="links">${linksHtml(l)}</div>
+      </div>
+      <div class="pad" style="margin-top:16px;">
+        <div class="row" style="justify-content:space-between;align-items:center;margin:0 0 10px;">
+          <p class="meta" style="margin:0;">PROPOSALS</p>
+          <button class="btn-secondary" style="padding:6px 12px;font-size:12px;flex:0;" id="btn-new-prop">+ New proposal</button>
+        </div>
+        <div class="links">${proposalsHtml(l)}</div>
+      </div>
+      <div class="pad" style="margin-top:18px;">
+        <p class="meta" style="margin:0 0 10px;">NOTES</p>
+        <p style="margin:0;font-size:14px;line-height:1.55;">${esc(l.notes || 'No notes yet. Tap + to add context.')}</p>
+      </div>
+      <div class="pad" style="margin-top:18px;">
+        <p class="meta" style="margin:0 0 12px;">ACTIVITY</p>
+        <div class="activity">${actHtml}</div>
+      </div>
+      <div class="pad" style="padding-top:18px;padding-bottom:10px;">
+        <button class="btn-secondary" id="detail-delete" style="color:var(--danger);border-color:color-mix(in oklch, var(--danger) 35%, transparent);">Delete lead</button>
+      </div>`;
+    $('#detail-back').addEventListener('click', () => { state.tab = state.prevTab || 'leads'; state.detailId = null; syncViews(); });
+    $('#detail-wa').addEventListener('click', () => sendWhatsApp(l));
+    $('#detail-stage').addEventListener('click', () => openStageSheet(l));
+    const npBtn = $('#btn-new-prop');
+    if (npBtn) npBtn.addEventListener('click', () => {
+      if (!backendUrl) { toast('Connect your sheet to send proposals', 'error'); return; }
+      $('#prop-title-in').value = '';
+      $('#prop-amount').value = '';
+      $('#prop-services').value = '';
+      $('#prop-validity').value = '14';
+      $('#prop-msg').value = '';
+      openSheet('sheet-prop');
+    });
+    const dlBtn = $('#detail-link');
+    if (dlBtn) dlBtn.addEventListener('click', () => {
+      if (!backendUrl) { toast('Connect your sheet to send trackable links', 'error'); return; }
+      $('#link-url').value = localStorage.getItem('waaida-proposal-url') || '';
+      $('#link-info').textContent = 'Track opens for ' + l.name;
+      linkChannel = 'whatsapp';
+      document.querySelectorAll('#link-channels .chip').forEach(ch => ch.classList.toggle('active', ch.dataset.channel === 'whatsapp'));
+      openSheet('sheet-link');
+    });
+    $('#detail-note').addEventListener('click', () => openSheet('sheet-note'));
+    $('#detail-delete').addEventListener('click', () => {
+      if (backendUrl) backendCall({ action: 'delete', id: l.id }).catch(() => {});
+      leads = leads.filter(x => x.id !== l.id);
+      state.tab = state.prevTab || 'leads'; state.detailId = null;
+      syncViews(); renderLeads(); renderPipeline();
+      toast('Lead deleted', 'success');
+    });
+    v.scrollTop = 0;
+  }
+
+  function sendWhatsApp(l) {
+    const msg = `Hi ${l.name.split(' ')[0]}! Thanks for your interest in ${l.product}. Can I send you more details today?`;
+    waOpen(l.phone, msg);
+    toast('Opening WhatsApp for ' + l.name.split(' ')[0] + '…');
+  }
+
+  /* ═══════════ SHEETS ═══════════ */
+  function openSheet(id) {
+    $('#' + id).classList.add('open');
+    $('#scrim').classList.add('open');
+  }
+  function closeSheets() {
+    document.querySelectorAll('.sheet').forEach(s => s.classList.remove('open'));
+    $('#scrim').classList.remove('open');
+    $('#add-form').reset();
+    document.querySelectorAll('#add-form .field').forEach(f => f.classList.remove('invalid'));
+    $('#add-form-error').classList.remove('show');
+    $('#link-title').textContent = 'Send link';
+    $('#link-info').textContent = 'Track when it is opened.';
+  }
+  $('#scrim').addEventListener('click', closeSheets);
+  $('#add-cancel').addEventListener('click', closeSheets);
+  $('#stage-cancel').addEventListener('click', closeSheets);
+  $('#note-cancel').addEventListener('click', closeSheets);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheets(); });
+
+  function openStageSheet(l) {
+    const opts = $('#stage-opts');
+    opts.innerHTML = '';
+    STAGE_ORDER.forEach(s => {
+      const st = STAGES[s];
+      const b = el('button', 'stage-opt');
+      b.innerHTML = `<span class="dot" style="background:${st.color};"></span>${st.label}${s === l.stage ? '<span class="cur">Current</span>' : ''}`;
+      if (s === l.stage) { b.disabled = true; b.style.opacity = '0.55'; b.style.cursor = 'default'; }
+      b.addEventListener('click', () => {
+        l.stage = s;
+        ensureAct(l).push({ t: 'stage', ts: new Date().toISOString(), label: 'Moved to ' + st.label });
+        closeSheets();
+        renderLeads(); renderPipeline();
+        if (state.tab === 'detail') openDetail(l.id);
+        if (backendUrl) backendCall({ action: 'stage', id: l.id, stage: s }).catch(() => toast('Stage saved locally — sheet unreachable', 'error'));
+        toast(`Moved to ${st.label}`, 'success');
+      });
+      opts.appendChild(b);
+    });
+    openSheet('sheet-stage');
+  }
+  let valueLeadId = null;
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#detail-value')) return;
+    const l = leads.find(x => x.id === state.detailId);
+    if (!l) return;
+    valueLeadId = l.id;
+    $('#in-value2').value = l.value ? String(l.value) : '';
+    $('#value-sub').textContent = 'Set the potential or agreed amount for ' + (l.name.split(' ')[0] || l.name) + '.';
+    openSheet('sheet-value');
+  });
+  $('#value-cancel').addEventListener('click', closeSheets);
+  $('#value-save').addEventListener('click', () => {
+    const l = leads.find(x => x.id === valueLeadId);
+    if (!l) { closeSheets(); return; }
+    const v = Number(String($('#in-value2').value).replace(/[^0-9]/g, '')) || 0;
+    l.value = v;
+    ensureAct(l).push({ t: 'stage', ts: new Date().toISOString(), label: 'Deal value set to ₱' + v.toLocaleString('en-PH') });
+    closeSheets();
+    renderPipeline();
+    if (state.tab === 'detail') openDetail(l.id);
+    if (backendUrl) backendCall({ action: 'value', id: l.id, value: v }).catch(() => toast('Value saved locally — sheet unreachable', 'error'));
+    toast(v ? 'Deal value: ₱' + v.toLocaleString('en-PH') : 'Deal value cleared', 'success');
+  });
+  $('#note-save').addEventListener('click', () => {
+    const txt = $('#note-text').value.trim();
+    if (!txt) { toast('Write something first'); return; }
+    const l = leads.find(x => x.id === state.detailId);
+    if (l) {
+      l.notes = txt;
+      ensureAct(l).push({ t: 'note', ts: new Date().toISOString(), label: 'Note added' });
+    }
+    $('#note-text').value = '';
+    closeSheets();
+    if (backendUrl && l) backendCall({ action: 'note', id: l.id, notes: txt }).catch(() => toast('Note saved locally — sheet unreachable', 'error'));
+    if (state.tab === 'detail') openDetail(state.detailId);
+    toast('Note saved', 'success');
+  });
+
+  /* ═══════════ ADD LEAD FORM ═══════════ */
+  const form = $('#add-form');
+  const fields = { name: $('#in-name'), phone: $('#in-phone') };
+  ['name', 'phone'].forEach(k => {
+    fields[k].addEventListener('blur', () => {
+      const f = $('#f-' + k);
+      const bad = !fields[k].validity.valid;
+      f.classList.toggle('invalid', bad);
+      if (bad) fields[k].setAttribute('aria-invalid', 'true'); else fields[k].removeAttribute('aria-invalid');
+    });
+    fields[k].addEventListener('input', () => {
+      const f = $('#f-' + k);
+      if (f.classList.contains('invalid') && fields[k].validity.valid) f.classList.remove('invalid');
+    });
+  });
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    const errBox = $('#add-form-error');
+    errBox.classList.remove('show');
+    errBox.innerHTML = '';
+    let firstBad = null;
+    ['name', 'phone'].forEach(k => {
+      const f = $('#f-' + k);
+      const bad = !fields[k].validity.valid;
+      f.classList.toggle('invalid', bad);
+      if (bad && !firstBad) firstBad = fields[k];
+    });
+    if (firstBad) {
+      const issues = [];
+      if (!fields.name.validity.valid) issues.push('<a href="#in-name">Name is required.</a>');
+      if (!fields.phone.validity.valid) issues.push('<a href="#in-phone">Phone must be a valid PH mobile number.</a>');
+      errBox.innerHTML = '<strong style="display:block;margin-bottom:4px;">2 problems</strong>' + issues.join('');
+      errBox.classList.add('show');
+      errBox.setAttribute('tabindex', '-1');
+      errBox.focus();
+      return;
+    }
+    const btn = $('#add-submit');
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+    setTimeout(() => {
+      const newLead = {
+        id: nextId++,
+        name: fields.name.value.trim(),
+        phone: fields.phone.value.trim(),
+        source: $('#in-source').value,
+        product: $('#in-product').value,
+        stage: 'new',
+        value: Number($('#in-value').value) || 0,
+        intent: 50,
+        time: 'now',
+        notes: $('#in-notes').value.trim() || 'Captured manually.',
+      };
+      leads.unshift(newLead);
+      btn.disabled = false;
+      btn.textContent = 'Save lead';
+      closeSheets();
+      state.tab = 'leads'; state.srcFilter = 'all';
+      syncViews(); renderLeads(); renderPipeline();
+      if (backendUrl) {
+        persistAdd(newLead)
+          .then(() => loadFromSheet())
+          .catch(() => toast('Saved locally — sheet unreachable, check your URL', 'error'));
+      } else {
+        toast('Lead added · ' + newLead.name, 'success');
+      }
+    }, 700);
+  });
+  $('#fab-add').addEventListener('click', () => openSheet('sheet-add'));
+
+  /* ═══════════ IMPORT FLOW ═══════════ */
+  let importStep = 'choose';
+  let importResult = null;
+  function renderImport() {
+    const body = $('#import-body');
+    const steps = `
+      <div class="import-step ${importStep === 'guide' || importStep === 'syncing' || importStep === 'result' ? 'done' : ''}"><span class="idx">1</span><div><div class="t">Choose source</div><div class="s">Google Sheets or CSV</div></div></div>
+      <div class="import-step ${importStep === 'syncing' || importStep === 'result' ? 'done' : ''}"><span class="idx">2</span><div><div class="t">Import</div><div class="s">${importStep === 'result' ? ((importResult && importResult.added) ? importResult.added + ' added' : 'Nothing to add') : 'Real rows only'}</div></div></div>`;
+    if (importStep === 'choose') {
+      body.innerHTML = steps + `
+        <div class="stack" style="gap:10px;margin-top:14px;">
+          <button class="btn-primary" id="imp-sheets"><svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8;"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9h16M4 15h16M9 9v11"/></svg> ${backendUrl ? 'Sync from Google Sheet' : 'Connect Google Sheets'}</button>
+          <button class="btn-secondary" id="imp-csv">Upload CSV file</button>
+          <p class="meta" style="text-align:center;margin:2px 0 0;">${backendUrl ? 'Imported leads are saved to your sheet.' : 'Demo mode: nothing is saved until you connect a sheet (gear icon, Settings).'}</p>
+        </div>
+        <input type="file" id="csv-file" accept=".csv" style="display:none;" aria-hidden="true" />`;
+      $('#imp-sheets').addEventListener('click', importFromSheets);
+      $('#imp-csv').addEventListener('click', () => { const f = $('#csv-file'); if (f) f.click(); });
+      $('#csv-file').addEventListener('change', handleCsvFile);
+    } else if (importStep === 'guide') {
+      body.innerHTML = steps + `
+        <div class="state-card" style="padding:20px 10px;">
+          <div class="ic" style="background:var(--amber-soft);"><svg viewBox="0 0 24 24" style="stroke:var(--amber-ink);"><path d="M12 8v5M12 16.5v.5"/><circle cx="12" cy="12" r="9"/></svg></div>
+          <h3>No sheet connected yet</h3>
+          <p>Open Settings, paste your Apps Script URL, then come back and sync.</p>
+          <div class="row" style="gap:10px;margin-top:12px;">
+            <button class="btn-secondary" style="flex:1;" id="imp-guide-back">Back</button>
+            <button class="btn-primary" style="flex:1.4;" id="imp-guide-settings">Open Settings</button>
+          </div>
+        </div>`;
+      $('#imp-guide-back').addEventListener('click', () => { importStep = 'choose'; renderImport(); });
+      $('#imp-guide-settings').addEventListener('click', () => { closeSheets(); $('#in-script-url').value = backendUrl;
+    $('#in-proposal-url').value = localStorage.getItem('waaida-proposal-url') || ''; $('#in-token').value = localStorage.getItem('waaida-token') || DEFAULT_TOKEN; renderSettingsStatus(); openSheet('sheet-settings'); });
+    } else if (importStep === 'syncing') {
+      body.innerHTML = steps + `
+        <div style="margin-top:16px;">
+          <div class="skel" style="height:10px;border-radius:999px;"></div>
+          <p class="meta" style="text-align:center;margin-top:10px;">Pulling leads from your sheet…</p>
+        </div>`;
+    } else if (importStep === 'result') {
+      const r = importResult || { added: 0, skipped: 0, mode: 'demo' };
+      body.innerHTML = steps + `
+        <div class="state-card" style="padding:20px 10px;">
+          <div class="ic" style="background:${r.added ? 'var(--accent-soft)' : 'var(--danger-soft)'};"><svg viewBox="0 0 24 24" style="stroke:${r.added ? 'var(--accent)' : 'var(--danger)'};">${r.added ? '<path d="M4 12.5 9.5 18 20 6.5"/>' : '<path d="M6 6l12 12M18 6 6 18"/>'}</svg></div>
+          <h3>${r.added ? r.added + (r.added === 1 ? ' lead imported' : ' leads imported') : 'Nothing imported'}</h3>
+          <p>${r.skipped ? r.skipped + ' rows skipped (missing name or invalid PH phone).' : (r.added ? 'All rows valid.' : 'No valid rows found in the file.')} ${r.mode === 'live' ? 'Saved to your Google Sheet.' : 'Demo mode — connect a sheet to keep them.'}</p>
+          <button class="btn-primary" id="imp-done" style="width:100%;">View in Leads</button>
+        </div>`;
+      $('#imp-done').addEventListener('click', () => { importStep = 'choose'; importResult = null; closeSheets(); state.tab = 'leads'; state.srcFilter = 'all'; syncViews(); renderLeads(); });
+    }
+  }
+
+  function importFromSheets() {
+    if (!backendUrl) { importStep = 'guide'; renderImport(); return; }
+    importStep = 'syncing';
+    renderImport();
+    loadFromSheet(true).then(() => {
+      closeSheets();
+      toast('Synced ' + leads.length + ' leads from your sheet', 'success');
+    }).catch(() => {
+      importStep = 'choose';
+      renderImport();
+      toast('Sheet unreachable — check the URL in Settings', 'error');
+    });
+  }
+
+  function parseCsv(text) {
+    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l);
+    if (!lines.length) return { rows: [] };
+    const cell = (r, i) => (i >= 0 ? (r[i] || '') : '');
+    const header = lines[0].split(',').map(h => h.replace(/^"|"$/g, '').trim().toLowerCase());
+    const find = keys => keys.map(k => header.indexOf(k)).find(i => i >= 0);
+    const idx = {
+      name: find(['name', 'full_name', 'fullname', 'lead_name', 'customer']),
+      phone: find(['phone', 'phone_number', 'mobile', 'mobile_number', 'contact', 'number', 'whatsapp']),
+      source: find(['source', 'lead_source', 'origin']),
+      product: find(['product', 'product_interest', 'business', 'interest', 'service']),
+      notes: find(['notes', 'remarks', 'comment', 'note']),
+    };
+    return {
+      rows: lines.slice(1)
+        .map(l => l.split(',').map(c => c.replace(/^"|"$/g, '').trim()))
+        .filter(r => r.some(c => c))
+        .map(r => ({
+          name: cell(r, idx.name) || cell(r, 0),
+          phone: cell(r, idx.phone) || cell(r, 1),
+          source: cell(r, idx.source),
+          product: cell(r, idx.product),
+          notes: cell(r, idx.notes),
+        })),
+    };
+  }
+
+  function handleCsvFile(ev) {
+    const file = ev.target.files && ev.target.files[0];
+    ev.target.value = '';
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const parsed = parseCsv(String(reader.result || ''));
+      let added = 0, skipped = 0;
+      const newLeads = [];
+      parsed.rows.forEach(r => {
+        const name = String(r.name || '').trim();
+        const phone = String(r.phone || '').trim();
+        const digits = phone.replace(/\D/g, '');
+        const validPhone = !phone || (digits.length === 10 && digits.indexOf('09') === 0) || (digits.length === 12 && digits.indexOf('63') === 0);
+        if (!name || !validPhone) { skipped++; return; }
+        added++;
+        newLeads.push({
+          id: 0, name, phone,
+          source: ['fb-ads', 'manual', 'csv', 'whatsapp'].indexOf(r.source) >= 0 ? r.source : 'manual',
+          product: String(r.product || '').trim() || 'Other',
+          stage: 'new', value: 0, intent: 50, time: 'now',
+          notes: String(r.notes || '').trim() || 'Imported from CSV.',
+        });
+      });
+      if (backendUrl && newLeads.length) {
+        importStep = 'syncing';
+        renderImport();
+        newLeads.reduce((p, l) => p.then(() => persistAdd(l)), Promise.resolve())
+          .then(() => loadFromSheet(true))
+          .then(() => { importStep = 'result'; importResult = { added, skipped, mode: 'live' }; renderImport(); })
+          .catch(() => { importStep = 'result'; importResult = { added: 0, skipped, mode: 'demo' }; renderImport(); toast('Could not reach the sheet — nothing was saved', 'error'); });
+        return;
+      }
+      newLeads.forEach(l => { l.id = nextId++; leads.unshift(l); });
+      importStep = 'result';
+      importResult = { added, skipped, mode: backendUrl ? 'live' : 'demo' };
+      renderImport();
+    };
+    reader.readAsText(file);
+  }
+  $('#btn-import').addEventListener('click', () => { importStep = 'choose'; importResult = null; renderImport(); openSheet('sheet-import'); });
+
+  /* ═══════════ BACKEND (Google Sheets via Apps Script) ═══════════ */
+  const STAGE_KEYS = ['new', 'contacted', 'qualified', 'proposal', 'won', 'lost'];
+  // Built-in connection: the app auto-connects to your sheet even on a
+  // fresh browser/device (browsers wipe saved settings when site data is
+  // cleared). Settings can override with another URL; demo mode is only
+  // active when you explicitly choose "Use demo data".
+  const DEFAULT_URL = 'https://script.google.com/macros/s/AKfycbzcjX_KHCsf37P9Vu6m2K1FsLm6dxvc3sba3Q_VFVhMYiz6KBzzZMjI7ca8-rnusVDL/exec';
+  // Built-in security token matching your Apps Script Script property
+  // WA_AIDA_TOKEN — so a cleared browser still connects. Settings can
+  // override it (e.g. after you rotate the token in the backend).
+  const DEFAULT_TOKEN = 'CMvsPtq2ob3TLrGCfozWRLzepjNilV1M';
+  // ?demo=1 (URL) or the Settings "Use demo data" flag forces sample-data
+  // mode — used by the public demo link so visitors never touch real leads.
+  const FORCE_DEMO = /(?:^|[?&])demo=1(?:&|$)/.test(location.search) || localStorage.getItem('waaida-force-demo') === '1';
+  let backendUrl = FORCE_DEMO ? '' : (localStorage.getItem('waaida-script-url') || DEFAULT_URL);
+  let loadingSheet = false;
+
+  function setConnFlag() {
+    document.body.classList.toggle('demo-mode', !backendUrl);
+    const at = $('#analytics-tag');
+    if (at) {
+      at.textContent = backendUrl ? 'Live data' : 'Sample data';
+      at.style.background = backendUrl ? 'var(--wa-soft)' : 'var(--amber-soft)';
+      at.style.color = backendUrl ? 'var(--wa-deep)' : 'var(--amber-ink)';
+    }
+    const f = $('#conn-flag');
+    if (!f) return;
+    f.style.display = 'inline-flex';
+    if (backendUrl) {
+      f.textContent = 'Live · Sheet connected';
+      f.style.background = 'var(--wa-soft)';
+      f.style.color = 'var(--wa-deep)';
+    } else {
+      f.textContent = 'Demo data';
+      f.style.background = 'var(--amber-soft)';
+      f.style.color = 'var(--amber-ink)';
+    }
+  }
+
+  function backendCall(params) {
+    if (!backendUrl) return Promise.reject(new Error('no-backend'));
+    const tok = localStorage.getItem('waaida-token') || DEFAULT_TOKEN;
+    if (tok) params.token = tok; // security token (backend Code.gs; Settings overrides built-in default)
+    params.t = Date.now(); // cache-buster: Apps Script caches GET responses (was causing stale/deleted leads to reappear)
+    const q = Object.keys(params).map(k => k + '=' + encodeURIComponent(params[k])).join('&');
+    return fetch(backendUrl + (backendUrl.includes('?') ? '&' : '?') + q, { method: 'GET' })
+      .then(r => r.json())
+      .then(data => {
+        if (data && data.error === 'unauthorized') {
+          toast('Security token missing or wrong — add it in Settings', 'error');
+          throw new Error('unauthorized');
+        }
+        return data;
+      });
+  }
+
+  function relTime(iso) {
+    if (!iso) return '';
+    const t = new Date(iso).getTime();
+    if (isNaN(t)) return String(iso);
+    const diff = Math.max(0, Date.now() - t);
+    const m = Math.floor(diff / 60000);
+    if (m < 1) return 'now';
+    if (m < 60) return m + 'm';
+    const h = Math.floor(m / 60);
+    if (h < 24) return h + 'h';
+    const d = Math.floor(h / 24);
+    if (d < 7) return d + 'd';
+    return new Date(iso).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' });
+  }
+
+  function loadFromSheet(silent) {
+    loadingSheet = true;
+    renderLeads();
+    return backendCall({ action: 'list' }).then(data => {
+      if (!Array.isArray(data)) throw new Error('bad-response');
+      leads = data.map(r => ({
+        id: Number(r.id) || Number(r._row) || Math.floor(Math.random() * 1e9),
+        name: r.name || 'Unnamed',
+        phone: String(r.phone || ''),
+        source: ['fb-ads', 'manual', 'csv', 'whatsapp'].indexOf(r.source) >= 0 ? r.source : 'manual',
+        product: r.product || 'Other',
+        stage: STAGE_KEYS.indexOf(r.stage) >= 0 ? r.stage : 'new',
+        value: Number(String(r.value || '0').replace(/[^0-9]/g, '')) || 0,
+        intent: Number(r.intent) || 50,
+        time: relTime(r.created) || '',
+        notes: r.notes || '',
+        created: r.created || '',
+        activity: parseAct(r.activity),
+      }));
+      nextId = leads.reduce((a, l) => Math.max(a, l.id + 1), 1);
+      loadingSheet = false;
+      renderLeads(); renderPipeline(); renderFollowup();
+      if (!silent) toast('Loaded ' + leads.length + ' leads from your sheet', 'success');
+      return leads;
+    }).catch(err => {
+      loadingSheet = false;
+      renderLeads();
+      throw err;
+    });
+  }
+
+  function persistAdd(l) {
+    return backendCall({ action: 'add', name: l.name, phone: l.phone, source: l.source, product: l.product, value: l.value || 0, intent: l.intent || 50, notes: l.notes || '' }).then(res => {
+      // the backend owns ids — adopt it immediately so any link/proposal
+      // created right after attaches to the real lead, not a temp id
+      if (res && res.id) {
+        l.id = Number(res.id) || l.id;
+        nextId = Math.max(nextId, l.id + 1);
+      }
+      return res;
+    });
+  }
+
+  /* settings */
+  function renderSettingsStatus() {
+    const st = $('#settings-status');
+    if (!backendUrl) {
+      st.innerHTML = `<div><div style="font-size:12px;font-weight:800;color:var(--amber-ink);">● Demo mode</div><div class="meta" style="margin-top:2px;">Sample data on this device only. Connect a Sheet to go live.</div></div>`;
+      return;
+    }
+    st.innerHTML = `<div><div style="font-size:12px;font-weight:800;color:var(--accent);">● Checking connection…</div></div>`;
+    backendCall({ action: 'meta' }).then(m => {
+      if (m && m.sheetUrl) {
+        st.innerHTML = `
+          <div>
+            <div style="font-size:12px;font-weight:800;color:var(--accent);">● Connected · ${esc(m.sheetName || 'Google Sheet')}</div>
+            <div class="meta" style="margin-top:4px;">${m.count || 0} leads in sheet</div>
+            <a class="btn-secondary" style="display:inline-flex;margin-top:8px;text-decoration:none;" href="${esc(m.sheetUrl)}" target="_blank" rel="noopener">Open Google Sheet</a>
+            <details style="margin-top:8px;"><summary class="meta" style="cursor:pointer;">Apps Script URL (advanced)</summary><div class="meta" style="word-break:break-all;margin-top:4px;">${esc(backendUrl)}</div></details>
+          </div>`;
+      } else {
+        st.innerHTML = `<div><div style="font-size:12px;font-weight:800;color:var(--accent);">● Connected</div><div class="meta" style="margin-top:2px;word-break:break-all;">${esc(backendUrl)}</div></div>`;
+      }
+    }).catch(() => {
+      st.innerHTML = `<div><div style="font-size:12px;font-weight:800;color:var(--accent);">● Connected (sheet unreachable)</div><div class="meta" style="margin-top:2px;word-break:break-all;">${esc(backendUrl)}</div></div>`;
+    });
+  }
+  $('#btn-settings').addEventListener('click', () => {
+    $('#in-script-url').value = backendUrl;
+    $('#in-token').value = localStorage.getItem('waaida-token') || DEFAULT_TOKEN;
+    $('#in-proposal-url').value = localStorage.getItem('waaida-proposal-url') || '';
+    renderSettingsStatus();
+    openSheet('sheet-settings');
+  });
+  $('#settings-save').addEventListener('click', () => {
+    const url = $('#in-script-url').value.trim();
+    if (!url) { toast('Paste your Apps Script URL first'); return; }
+    backendUrl = url.replace(/\/+$/, '');
+    localStorage.setItem('waaida-script-url', backendUrl);
+    localStorage.removeItem('waaida-force-demo');
+    localStorage.setItem('waaida-proposal-url', $('#in-proposal-url').value.trim());
+    localStorage.setItem('waaida-token', $('#in-token').value.trim());
+    closeSheets();
+    setConnFlag();
+    toast('Connecting…');
+    loadFromSheet().then(() => { loadLinks(); loadProposals(); }).catch(() => {
+      // URL stays saved; only explicit "Use demo data" disconnects.
+      renderLeads();
+      toast('Could not reach the sheet — URL kept; check it and redeploy if needed', 'error');
+    });
+  });
+  $('#settings-clear').addEventListener('click', () => {
+    backendUrl = '';
+    localStorage.setItem('waaida-force-demo', '1');
+    localStorage.removeItem('waaida-script-url');
+    closeSheets();
+    setConnFlag();
+    location.reload();
+  });
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-demo-connect]');
+    if (!b) return;
+    $('#in-script-url').value = backendUrl;
+    renderSettingsStatus();
+    openSheet('sheet-settings');
+  });
+
+  /* ═══════════ NAV / TABS / FILTERS ═══════════ */
+  function syncViews() {
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === state.tab));
+    document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + state.tab));
+    $('#fab-add').style.display = state.tab === 'leads' ? 'grid' : 'none';
+    const isChatTab = state.tab === 'ai';
+    let chatbar = $('#chatbar');
+    if (isChatTab && !chatbar) {
+      chatbar = el('div', 'chatbar');
+      chatbar.id = 'chatbar';
+      chatbar.innerHTML = `<input type="text" id="ai-input" placeholder="Ask about your leads…" aria-label="Ask the assistant" /><button class="send" id="ai-send" aria-label="Send"><svg viewBox="0 0 24 24"><path d="M4 12 20 4l-4 16-4-6-6-2z"/></svg></button>`;
+      $('.screen').insertBefore(chatbar, $('.home-indicator'));
+      const sendAi = () => {
+        const inp = $('#ai-input');
+        const q = inp.value.trim();
+        if (!q) return;
+        pushChat(esc(q), 'me');
+        inp.value = '';
+        const lq = q.toLowerCase();
+        let key = 'default';
+        if (/week|last|compare|vs/.test(lq)) key = 'week';
+        else if (/score|intent|priorit/.test(lq)) key = 'score';
+        else if (/draft|follow|message|write|reply/.test(lq)) key = 'draft';
+        aiReply(key);
+      };
+      $('#ai-send').addEventListener('click', sendAi);
+      $('#ai-input').addEventListener('keydown', e => { if (e.key === 'Enter') sendAi(); });
+      renderAI();
+    } else if (!isChatTab && chatbar) {
+      chatbar.remove();
+    }
+    if (state.tab === 'analytics') {
+      const active = document.querySelector('[data-range].active');
+      loadAnalytics(active ? active.dataset.range : '30d');
+    }
+    if (state.tab === 'pipeline') renderPipeline();
+    if (state.tab === 'followup') renderFollowup();
+  }
+  document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+    if (state.tab === 'detail' && t.dataset.tab !== 'detail') state.prevTab = t.dataset.tab;
+    state.tab = t.dataset.tab;
+    syncViews();
+  }));
+  document.querySelectorAll('.chip[data-src]').forEach(c => c.addEventListener('click', () => {
+    state.srcFilter = c.dataset.src;
+    syncChips();
+    renderLeads();
+  }));
+  document.querySelectorAll('.chip[data-range]').forEach(c => c.addEventListener('click', () => {
+    document.querySelectorAll('.chip[data-range]').forEach(x => x.classList.toggle('active', x === c));
+    loadAnalytics(c.dataset.range);
+  }));
+  function syncChips() {
+    document.querySelectorAll('.chip[data-src]').forEach(c => c.classList.toggle('active', c.dataset.src === state.srcFilter));
+  }
+  $('#lead-search').addEventListener('input', e => { state.query = e.target.value; renderLeads(); });
+  const psort = $('#pipe-sort');
+  if (psort) psort.addEventListener('click', () => {
+    pipeSort = pipeSort === 'newest' ? 'value' : (pipeSort === 'value' ? 'name' : 'newest');
+    renderPipeline();
+    toast('Pipeline sorted by ' + pipeSort);
+  });
+  document.querySelectorAll('#link-channels .chip').forEach(ch => ch.addEventListener('click', () => {
+      linkChannel = ch.dataset.channel;
+      document.querySelectorAll('#link-channels .chip').forEach(x => {
+        const on = x === ch;
+        x.classList.toggle('active', on);
+        x.setAttribute('aria-checked', on ? 'true' : 'false');
+      });
+    }));
+    $('#prop-cancel').addEventListener('click', closeSheets);
+    $('#prop-create').addEventListener('click', () => {
+      const title = $('#prop-title-in').value.trim();
+      const amount = $('#prop-amount').value.trim();
+      if (!title || !amount) { toast('Add a title and amount first', 'error'); return; }
+      const services = $('#prop-services').value.trim();
+      const validity = $('#prop-validity').value.trim() || '14';
+      const message = $('#prop-msg').value.trim();
+      const lid = state.detailId;
+      const btn = $('#prop-create');
+      btn.disabled = true; btn.textContent = 'Creating…';
+      backendCall({ action: 'proposal_create', leadId: lid, title: title, amount: amount, services: services, validity: validity, message: message })
+        .then(res => {
+          btn.disabled = false; btn.textContent = 'Create proposal';
+          if (!res || !res.id) { toast('Could not create — check your sheet connection', 'error'); return; }
+          const propUrl = new URL('proposal.html', location.href).href + '?id=' + encodeURIComponent(res.id) + '&b=' + encodeURIComponent(backendUrl);
+          $('#link-url').value = propUrl;
+          $('#link-title').textContent = 'Send proposal link';
+          $('#link-info').textContent = 'Your proposal link is ready below — copy it or send it now.';
+          const urlIn = $('#link-url');
+          urlIn.style.transition = 'box-shadow .3s';
+          urlIn.style.boxShadow = '0 0 0 3px rgba(37,211,102,.5)';
+          setTimeout(() => { urlIn.style.boxShadow = ''; }, 2000);
+          if (navigator.clipboard) navigator.clipboard.writeText(propUrl).catch(() => {});
+          closeSheets();
+          openSheet('sheet-link');
+          loadProposals().then(() => { if (state.tab === 'detail') openDetail(lid); });
+          toast('Proposal link created — send it now', 'success');
+        })
+        .catch(() => { btn.disabled = false; btn.textContent = 'Create proposal'; toast('Could not create the proposal', 'error'); });
+    });
+    $('#link-copy').addEventListener('click', () => {
+      const v = $('#link-url').value.trim();
+      if (!v) { toast('Nothing to copy yet', 'error'); return; }
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(v).then(() => toast('Link copied', 'success')).catch(() => toast('Link copied', 'success'));
+      else toast('Link copied', 'success');
+    });
+    $('#link-cancel').addEventListener('click', closeSheets);
+    $('#link-send').addEventListener('click', () => {
+      const url = $('#link-url').value.trim();
+      if (!/^https?:\/\//i.test(url)) { toast('Enter a valid link starting with https://'); return; }
+      const l0 = leads.find(x => x.id === state.detailId);
+      if (!l0 || !backendUrl) return;
+      const lsBtn = $('#link-send');
+      if (lsBtn.dataset.busy === '1') return; // ignore rapid double-presses
+      lsBtn.dataset.busy = '1';
+      lsBtn.disabled = true;
+      localStorage.setItem('waaida-proposal-url', url);
+      const channel = linkChannel;
+      backendCall({ action: 'link', leadId: l0.id, url, channel }).then(res => {
+        if (!res || !res.id) { $('#link-send').dataset.busy = ''; $('#link-send').disabled = false; toast('Could not create the link — check your sheet connection', 'error'); return; }
+        const tUrl = (location.origin && /^https?:/.test(location.origin))
+          ? new URL('track.html', location.href).href + '?id=' + encodeURIComponent(res.id) + '&url=' + encodeURIComponent(url) + '&b=' + encodeURIComponent(backendUrl)
+          : res.trackUrl;
+        const msg = 'Here is your proposal: ' + tUrl;
+        if (channel === 'whatsapp') waOpen(l0.phone, msg);
+        else if (channel === 'viber') {
+          viberOpen(l0.phone);
+          if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(msg);
+          toast('Viber opened — link copied, paste it to send', 'success');
+        }
+        else {
+          const m = String(l0.notes || '').match(/email:\s*([^\s|,]+)/i);
+          if (m) window.open('mailto:' + m[1] + '?subject=' + encodeURIComponent('Your proposal from WA AIDA') + '&body=' + encodeURIComponent(msg), '_blank', 'noopener');
+          else { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(tUrl); toast('No email on file — link copied to clipboard', 'success'); }
+        }
+        ensureAct(l0).push({ t: 'link', ts: new Date().toISOString(), label: 'Link sent via ' + channel });
+        backendCall({ action: 'actlog', id: l0.id, label: 'Link sent via ' + channel }).catch(() => {});
+        $('#link-send').dataset.busy = '';
+        $('#link-send').disabled = false;
+        closeSheets();
+        loadLinks().then(() => loadProposals()).then(() => { if (state.tab === 'detail') openDetail(l0.id); });
+        toast('Link sent via ' + channel + ' — tracking enabled', 'success');
+      }).catch(() => toast('Could not create the link — check your sheet connection', 'error'));
+    });
+    $('#sched-cancel').addEventListener('click', closeSheets);
+  $('#tpl-save').addEventListener('click', () => {
+    if (!editingTpl) return;
+    const name = $('#tpl-name').value.trim();
+    const body = $('#tpl-body').value.trim();
+    if (!name || !body) { toast('Give it a name and a message', 'error'); return; }
+    TPL_EDITS[editingTpl] = { name, body, at: Date.now(), synced: '1' };
+    saveTplEdits();
+    backendCall({ action: 'tpl_save', id: editingTpl, name, body })
+      .catch(() => { if (TPL_EDITS[editingTpl]) { TPL_EDITS[editingTpl].synced = ''; saveTplEdits(); } });
+    editingTpl = null;
+    closeSheets();
+    renderFollowup();
+    toast('Template saved', 'success');
+  });
+  $('#tpl-reset').addEventListener('click', () => {
+    if (!editingTpl) return;
+    const id = editingTpl;
+    delete TPL_EDITS[id];
+    let tomb = []; try { tomb = JSON.parse(localStorage.getItem('waaida-tpl-tomb') || '[]'); } catch (e) {}
+    if (tomb.indexOf(id) < 0) { tomb.push(id); localStorage.setItem('waaida-tpl-tomb', JSON.stringify(tomb)); }
+    saveTplEdits();
+    backendCall({ action: 'tpl_del', id }).catch(() => {});
+    editingTpl = null;
+    closeSheets();
+    renderFollowup();
+    toast('Template reset to default', 'success');
+  });
+  $('#sched-confirm').addEventListener('click', () => {
+    const dt = $('#sched-dt').value;
+    if (!dt) { toast('Pick a date and time first'); return; }
+    if (!pendingSched) { closeSheets(); return; }
+    const { t, target } = pendingSched;
+    const ts = new Date(dt).getTime();
+    const fId = 'F' + Date.now();
+    SCHEDULED.push({ id: fId, name: target.name.split(' ')[0], what: t.name, when: fmtWhen(ts), ts: ts, phone: target.phone || '', synced: '1' });
+    localStorage.setItem('waaida-scheduled', JSON.stringify(SCHEDULED));
+    // sync to sheet so reminders work even without this device (best-effort)
+    backendCall({ action: 'fu_save', id: fId, leadId: target.id, name: target.name, phone: target.phone || '', what: t.name, when: ts })
+      .catch(() => { const it = SCHEDULED.find(y => y.id === fId); if (it) { it.synced = ''; localStorage.setItem('waaida-scheduled', JSON.stringify(SCHEDULED)); } });
+    pendingSched = null;
+    closeSheets();
+    renderFollowup();
+    toast('Scheduled ' + t.name + ' for ' + fmtWhen(ts) + ' — reminder on', 'success');
+  });
+
+  /* ═══════════ INIT ═══════════ */
+  tplSyncRemote();
+  const tl = $('#today-label');
+  if (tl) tl.textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }).toUpperCase();
+  setConnFlag();
+  if (backendUrl) {
+    loadFromSheet().then(() => loadLinks()).catch(() => {
+      // Keep the connection saved — a transient network hiccup must not
+      // throw the app back to demo data.
+      renderLeads();
+      toast('Could not reach the sheet — retrying…', 'error');
+      setTimeout(() => {
+        loadFromSheet().then(() => loadLinks()).catch(() => {
+          renderLeads();
+          toast('Still unreachable — open Settings to check the URL (connection kept)', 'error');
+        });
+      }, 4000);
+    });
+    setInterval(() => { if (backendUrl && document.visibilityState === 'visible') { loadFromSheet(true).catch(() => {}); loadLinks(); } }, 60000);
+    document.addEventListener('visibilitychange', () => { if (backendUrl && document.visibilityState === 'visible') { loadFromSheet(true).catch(() => {}); loadLinks(); } });
+  }
+  renderLeads();
+  renderFollowup();
+  state.prevTab = 'leads';
+})();
+</script>
+<script>
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    });
+  }
+</script>
+</body>
+</html>

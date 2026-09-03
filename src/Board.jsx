@@ -1,22 +1,22 @@
 import { useMemo, useState } from 'react'
 import { SOURCES, STAGES } from './data'
-import { formatDate, formatPeso, isOverdue, todayISO, useStore } from './store'
+import { formatPeso, isOverdue, relTime, useStore } from './store'
 import { SourceBadge, inputCls } from './ui'
 
 export default function Board({ onOpenLead, onNewLead }) {
   const { leads, actions } = useStore()
   const [search, setSearch] = useState('')
-  const [sourceFilter, setSourceFilter] = useState('All')
-  const [stageFilter, setStageFilter] = useState('All')
+  const [sourceFilter, setSourceFilter] = useState('all')
+  const [stageFilter, setStageFilter] = useState('all')
   const [dragId, setDragId] = useState(null)
   const [dragOverCol, setDragOverCol] = useState(null)
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
     return leads.filter((l) => {
-      if (sourceFilter !== 'All' && l.source !== sourceFilter) return false
-      if (stageFilter !== 'All' && l.stage !== stageFilter) return false
-      if (q && ![l.name, l.business].join(' ').toLowerCase().includes(q)) return false
+      if (sourceFilter !== 'all' && l.source !== sourceFilter) return false
+      if (stageFilter !== 'all' && l.stage !== stageFilter) return false
+      if (q && ![l.name, l.product].join(' ').toLowerCase().includes(q)) return false
       return true
     })
   }, [leads, search, sourceFilter, stageFilter])
@@ -48,11 +48,11 @@ export default function Board({ onOpenLead, onNewLead }) {
           onChange={(e) => setSearch(e.target.value)}
         />
         <select className={`${inputCls} sm:w-36`} value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)}>
-          <option>All</option>
-          {SOURCES.map((s) => <option key={s}>{s}</option>)}
+          <option value="all">All</option>
+          {SOURCES.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
         </select>
         <select className={`${inputCls} sm:w-36`} value={stageFilter} onChange={(e) => setStageFilter(e.target.value)}>
-          <option>All</option>
+          <option value="all">All</option>
           {STAGES.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
         </select>
         <div className="ml-auto">
@@ -107,15 +107,15 @@ export default function Board({ onOpenLead, onNewLead }) {
                         <p className="text-sm font-medium leading-tight">{lead.name}</p>
                         <SourceBadge source={lead.source} />
                       </div>
-                      <p className="mt-0.5 truncate text-xs text-navy/50">{lead.business}</p>
+                      <p className="mt-0.5 truncate text-xs text-navy/50">{lead.product}</p>
                       <div className="mt-2 flex items-center justify-between text-xs">
                         <span className="font-semibold text-deepgreen">{formatPeso(lead.value)}</span>
                         {isOverdue(lead.nextFollowUp) ? (
                           <span className="rounded-full bg-amber/15 px-1.5 py-0.5 font-medium text-amber">
-                            ⚠ {formatDate(lead.nextFollowUp)} overdue
+                            ⚠ {lead.nextFollowUp && new Date(lead.nextFollowUp + 'T12:00:00').toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })} overdue
                           </span>
                         ) : (
-                          <span className="text-navy/40">Last contact {formatDate(lead.lastContact)}</span>
+                          <span className="text-navy/40">Added {relTime(lead.created)}</span>
                         )}
                       </div>
                     </div>

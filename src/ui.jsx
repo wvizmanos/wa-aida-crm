@@ -1,13 +1,13 @@
 import { useState } from 'react'
-import { SOURCE_STYLES, SOURCES, STAGES } from './data'
-import { formatDate, formatPeso, isOverdue, useStore } from './store'
+import { SOURCE_STYLES, SOURCES, STAGES, sourceLabel } from './data'
+import { formatDate, formatPeso, isOverdue, todayISO, useStore } from './store'
 
 // ---------- small shared bits ----------
 
 export function SourceBadge({ source }) {
   return (
     <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${SOURCE_STYLES[source] || 'bg-stone-100 text-stone-700 border-stone-300'}`}>
-      {source}
+      {sourceLabel(source)}
     </span>
   )
 }
@@ -35,38 +35,60 @@ export function Button({ variant = 'primary', className = '', ...props }) {
 }
 
 export const inputCls =
-  'w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-navy placeholder:text-stone-400 focus:border-wagreen focus:outline-none focus:ring-2 focus:ring-wagreen/25'
+  'w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-navy placeholder:text-stone-400 focus:border-wagreen focus:outline-none focus:ring-2 focus:ring-wagreen/25 disabled:bg-stone-50 disabled:text-stone-500'
 
 // ---------- Add / Edit lead modal ----------
+// The sheet backend has actions for stage / value / notes / delete only —
+// name, phone, source and product are fixed after creation (they can be
+// corrected in the Google Sheet). In demo mode everything is editable.
 
 export function LeadModal({ lead, onClose }) {
-  const { actions } = useStore()
+  const { actions, sync } = useStore()
   const editing = !!lead
+  const canEditCore = !editing || sync.demoMode // add always; edit core fields only in demo
   const [form, setForm] = useState({
     name: lead?.name || '',
-    business: lead?.business || '',
     phone: lead?.phone || '',
-    source: lead?.source || 'Manual',
-    value: lead?.value ?? '',
+    source: lead?.source || 'manual',
+    product: lead?.product || '',
     stage: lead?.stage || 'new',
+    value: lead?.value ?? '',
     nextFollowUp: lead?.nextFollowUp || '',
   })
   const [errors, setErrors] = useState({})
+  const [saving, setSaving] = useState(false)
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
-  function submit(e) {
+  async function submit(e) {
     e.preventDefault()
-    const errs = {}
-    if (!form.name.trim()) errs.name = 'Name is required'
-    if (!form.phone.trim()) errs.phone = 'Phone number is required'
-    else if (!/^\+?[\d\s-]{7,15}$/.test(form.phone.trim())) errs.phone = 'Enter a valid phone number'
-    setErrors(errs)
-    if (Object.keys(errs).length) return
-    const payload = { ...form, name: form.name.trim(), phone: form.phone.trim(), value: Number(form.value) || 0, nextFollowUp: form.nextFollowUp || null }
-    if (editing) actions.updateLead(lead.id, payload, 'Lead details edited')
-    else actions.addLead(payload)
-    onClose()
+    if (!editing) {
+      const errs = {}
+      if (!form.name.trim()) errs.name = 'Name is required'
+      if (!form.phone.trim()) errs.phone = 'Phone number is required'
+      else if (!/^\+?[\d\s-]{7,15}$/.test(form.phone.trim())) errs.phone = 'Enter a valid phone number'
+      setErrors(errs)
+      if (Object.keys(errs).length) return
+      setSaving(true)
+      try {
+        actions.addLead({ ...form, name: form.name.trim(), phone: form.phone.trim(), value: Number(form.value) || 0, nextFollowUp: form.nextFollowUp || null })
+        onClose()
+      } finally {
+        setSaving(false)
+      }
+      return
+    }
+    // Edit: the sheet backend only supports stage / value changes here
+    // (name, phone, source, product are fixed) — no validation needed.
+    setSaving(true)
+    try {
+      if (form.stage !== lead.stage) actions.moveLead(lead.id, form.stage)
+      if ((Number(form.value) || 0) !== lead.value) actions.setValue(lead.id, Number(form.value) || 0)
+      actions.setFollowUp(lead.id, form.nextFollowUp || null)
+      onClose()
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -79,23 +101,23 @@ export function LeadModal({ lead, onClose }) {
         <form onSubmit={submit} className="space-y-4" noValidate>
           <div>
             <label className="mb-1 block text-xs font-medium text-navy/70">Name *</label>
-            <input className={inputCls} value={form.name} onChange={set('name')} placeholder="e.g. Maria Santos" />
+            <input className={inputCls} value={form.name} onChange={set('name')} disabled={!canEditCore} placeholder="e.g. Maria Santos" />
             {errors.name && <p className="mt-1 text-xs text-terracotta">{errors.name}</p>}
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-navy/70">Business type</label>
-            <input className={inputCls} value={form.business} onChange={set('business')} placeholder="e.g. Sari-sari Store (Quezon City)" />
+            <label className="mb-1 block text-xs font-medium text-navy/70">Business / product</label>
+            <input className={inputCls} value={form.product} onChange={set('product')} disabled={!canEditCore} placeholder="e.g. Siomai Franchise" />
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-navy/70">WhatsApp number *</label>
-            <input className={inputCls} value={form.phone} onChange={set('phone')} placeholder="+63 9xx xxx xxxx" />
+            <input className={inputCls} value={form.phone} onChange={set('phone')} disabled={!canEditCore} placeholder="+63 9xx xxx xxxx" />
             {errors.phone && <p className="mt-1 text-xs text-terracotta">{errors.phone}</p>}
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="mb-1 block text-xs font-medium text-navy/70">Source</label>
-              <select className={inputCls} value={form.source} onChange={set('source')}>
-                {SOURCES.map((s) => <option key={s}>{s}</option>)}
+              <select className={inputCls} value={form.source} onChange={set('source')} disabled={!canEditCore}>
+                {SOURCES.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
               </select>
             </div>
             <div>
@@ -115,9 +137,14 @@ export function LeadModal({ lead, onClose }) {
               <input type="date" className={inputCls} value={form.nextFollowUp} onChange={set('nextFollowUp')} />
             </div>
           </div>
+          {editing && !sync.demoMode && (
+            <p className="rounded-lg bg-stone-50 px-3 py-2 text-xs text-navy/50">
+              Name, number, source and business are fixed once a lead is in the sheet — correct them in the Google Sheet. Stage, value and follow-up save via the backend.
+            </p>
+          )}
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="secondary" type="button" onClick={onClose}>Cancel</Button>
-            <Button type="submit">{editing ? 'Save changes' : 'Add lead'}</Button>
+            <Button type="submit" disabled={saving}>{saving ? 'Saving…' : editing ? 'Save changes' : 'Add lead'}</Button>
           </div>
         </form>
       </div>
@@ -128,26 +155,32 @@ export function LeadModal({ lead, onClose }) {
 // ---------- Lead detail drawer ----------
 
 export function LeadDrawer({ lead, onClose, onEdit }) {
-  const { actions } = useStore()
-  const [noteText, setNoteText] = useState('')
+  const { actions, sync } = useStore()
+  const [noteText, setNoteText] = useState(null) // null = pristine (show lead.notes)
+  const [followUp, setFollowUp] = useState(null) // null = pristine
 
   if (!lead) return null
-  const waNumber = lead.phone.replace(/[^\d]/g, '').replace(/^0/, '63')
+  const notesValue = noteText ?? lead.notes ?? ''
+  const followUpValue = followUp ?? lead.nextFollowUp ?? ''
+  const notesDirty = noteText !== null && noteText !== (lead.notes || '')
+  const followUpDirty = followUp !== null && followUp !== (lead.nextFollowUp || '')
+  const waNumber = lead.phone.replace(/[^\d]/g, '').replace(/^0/, '')
   const waLink = `https://wa.me/${waNumber}`
+  const activity = lead.activity || []
 
   return (
     <div className="fixed inset-0 z-40 flex justify-end bg-navy/30" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <aside className="flex h-full w-full max-w-md flex-col overflow-y-auto bg-white shadow-2xl">
         <div className="sticky top-0 z-10 border-b border-stone-200 bg-white px-5 py-4">
           <div className="flex items-start justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-2">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-lg font-semibold">{lead.name}</h2>
                 <StageBadge stage={lead.stage} />
               </div>
-              <p className="mt-0.5 text-sm text-navy/60">{lead.business || '—'}</p>
+              <p className="mt-0.5 text-sm text-navy/60">{lead.product || '—'}</p>
             </div>
-            <Button variant="ghost" onClick={onClose} aria-label="Close" className="h-8 w-8 !p-0 text-xl leading-none">×</Button>
+            <Button variant="ghost" onClick={onClose} aria-label="Close" className="h-8 w-8 shrink-0 !p-0 text-xl leading-none">×</Button>
           </div>
         </div>
 
@@ -163,14 +196,28 @@ export function LeadDrawer({ lead, onClose, onEdit }) {
             </div>
             <div>
               <p className="text-xs font-medium text-navy/50">Phone</p>
-              <p>{lead.phone}</p>
+              <p>{lead.phone || '—'}</p>
             </div>
             <div>
-              <p className="text-xs font-medium text-navy/50">Next follow-up</p>
-              <p className={isOverdue(lead.nextFollowUp) ? 'font-semibold text-amber' : ''}>
-                {formatDate(lead.nextFollowUp)}{isOverdue(lead.nextFollowUp) ? ' · overdue' : ''}
-              </p>
+              <p className="text-xs font-medium text-navy/50">Created</p>
+              <p>{relCreated(lead.created)}</p>
             </div>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-medium text-navy/50">Next follow-up</label>
+            <div className="flex gap-2">
+              <input
+                type="date"
+                className={inputCls}
+                value={followUpValue}
+                onChange={(e) => setFollowUp(e.target.value)}
+              />
+              {followUpDirty && (
+                <Button onClick={() => { actions.setFollowUp(lead.id, followUpValue || null); setFollowUp(null) }}>Save</Button>
+              )}
+            </div>
+            {isOverdue(followUpValue) && <p className="mt-1 text-xs font-medium text-amber">⚠ overdue</p>}
           </div>
 
           <div className="flex gap-2">
@@ -184,39 +231,33 @@ export function LeadDrawer({ lead, onClose, onEdit }) {
           <div>
             <div className="mb-2 flex items-center justify-between">
               <h3 className="text-sm font-semibold">Notes</h3>
-              <span className="text-xs text-navy/40">{(lead.notes || []).length}</span>
+              {sync.demoMode && <span className="text-[11px] font-medium text-amber">demo — not saved to a sheet</span>}
             </div>
-            <div className="space-y-2">
-              {(lead.notes || []).length === 0 && (
-                <p className="rounded-lg border border-dashed border-stone-300 bg-cream px-3 py-4 text-center text-sm text-navy/50">No notes yet — jot down what matters here.</p>
-              )}
-              {(lead.notes || []).slice().reverse().map((nt, i) => (
-                <div key={i} className="rounded-lg border border-stone-200 bg-cream px-3 py-2 text-sm">
-                  <p>{nt.text}</p>
-                  <p className="mt-1 text-[11px] text-navy/40">{formatDate(nt.at)}</p>
-                </div>
-              ))}
-            </div>
-            <form
-              className="mt-3 flex gap-2"
-              onSubmit={(e) => { e.preventDefault(); if (!noteText.trim()) return; actions.addNote(lead.id, noteText.trim()); setNoteText('') }}
-            >
-              <input className={inputCls} value={noteText} onChange={(e) => setNoteText(e.target.value)} placeholder="Add a note…" />
-              <Button type="submit" disabled={!noteText.trim()}>Add</Button>
-            </form>
+            <textarea
+              className={`${inputCls} min-h-24 resize-y`}
+              value={notesValue}
+              onChange={(e) => setNoteText(e.target.value)}
+              placeholder="Add context — what was discussed, what matters…"
+            />
+            {notesDirty && (
+              <div className="mt-2 flex justify-end gap-2">
+                <Button variant="secondary" onClick={() => setNoteText(null)}>Discard</Button>
+                <Button onClick={() => { actions.saveNotes(lead.id, noteText); setNoteText(null) }}>Save note</Button>
+              </div>
+            )}
           </div>
 
           <div>
             <h3 className="mb-2 text-sm font-semibold">Activity log</h3>
             <ol className="space-y-0">
-              {(lead.activity || []).length === 0 && <p className="text-sm text-navy/50">No activity yet.</p>}
-              {(lead.activity || []).slice().reverse().map((a, i, arr) => (
+              {activity.length === 0 && <p className="text-sm text-navy/50">No activity yet.</p>}
+              {activity.slice().reverse().map((a, i, arr) => (
                 <li key={i} className="relative flex gap-3 pb-3 pl-1 last:pb-0">
                   {i < arr.length - 1 && <span className="absolute left-[4.5px] top-4 h-full w-px bg-stone-200" />}
                   <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-wagreen" />
                   <div>
-                    <p className="text-sm">{a.text}</p>
-                    <p className="text-[11px] text-navy/40">{formatDate(a.at)}</p>
+                    <p className="text-sm">{a.label || a.text}</p>
+                    <p className="text-[11px] text-navy/40">{formatTs(a.ts || a.at)}</p>
                   </div>
                 </li>
               ))}
@@ -224,10 +265,120 @@ export function LeadDrawer({ lead, onClose, onEdit }) {
           </div>
 
           <div className="border-t border-stone-100 pt-4">
-            <Button variant="danger" onClick={() => { actions.deleteLead(lead.id); onClose() }}>Delete lead</Button>
+            <Button
+              variant="danger"
+              onClick={() => {
+                if (window.confirm(`Delete ${lead.name}? This also removes their tracked links, proposals and reminders from the sheet.`)) {
+                  actions.deleteLead(lead.id)
+                  onClose()
+                }
+              }}
+            >
+              Delete lead
+            </Button>
           </div>
         </div>
       </aside>
+    </div>
+  )
+}
+
+function relCreated(iso) {
+  if (!iso) return '—'
+  const dt = new Date(iso)
+  if (isNaN(dt)) return '—'
+  return dt.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })
+}
+
+function formatTs(ts) {
+  if (!ts) return ''
+  const dt = new Date(ts)
+  if (isNaN(dt)) return String(ts)
+  return dt.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }) +
+    ' · ' + dt.toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit' })
+}
+
+// ---------- Settings modal (Sheets connection) ----------
+
+export function SettingsModal({ onClose }) {
+  const { sync, actions } = useStore()
+  const [url, setUrl] = useState(() => localStorage.getItem('waaida-script-url') || '')
+  const [token, setToken] = useState(() => localStorage.getItem('waaida-token') || '')
+  const [demo, setDemo] = useState(sync.demoMode)
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  async function connect(e) {
+    e.preventDefault()
+    setBusy(true)
+    setError('')
+    try {
+      await actions.connect(url.trim(), token.trim())
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const statusLine = () => {
+    if (sync.busy) return { text: '● Saving…', cls: 'text-amber' }
+    if (sync.connState === 'live' && sync.meta) return { text: `● Live · ${sync.meta.sheetName || 'Google Sheet'} · ${sync.meta.count} leads`, cls: 'text-deepgreen' }
+    if (sync.connState === 'live') return { text: '● Live · Sheet connected', cls: 'text-deepgreen' }
+    if (sync.connState === 'offline') return { text: '● Offline · showing cached data', cls: 'text-red-600' }
+    return { text: '● Demo data — sample leads on this device only', cls: 'text-amber' }
+  }
+  const st = statusLine()
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-navy/40 p-0 sm:items-center sm:p-6" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-white p-6 shadow-2xl sm:rounded-2xl">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Settings</h2>
+          <Button variant="ghost" onClick={onClose} aria-label="Close" className="h-8 w-8 !p-0 text-xl leading-none">×</Button>
+        </div>
+
+        <div className={`mb-4 rounded-xl border border-stone-200 bg-cream px-4 py-3 text-sm font-medium ${st.cls}`}>{st.text}</div>
+
+        {sync.connState === 'live' && sync.meta?.sheetUrl && (
+          <a className="mb-4 inline-flex text-sm font-medium text-deepgreen underline" href={sync.meta.sheetUrl} target="_blank" rel="noopener noreferrer">
+            Open the Google Sheet ↗
+          </a>
+        )}
+
+        <form onSubmit={connect} className="space-y-4">
+          <div>
+            <label className="mb-1 block text-xs font-medium text-navy/70">Apps Script Web App URL (ends in /exec)</label>
+            <input className={inputCls} value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://script.google.com/macros/s/…/exec" autoComplete="off" />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-navy/70">Security token (optional)</label>
+            <input type="password" className={inputCls} value={token} onChange={(e) => setToken(e.target.value)} placeholder="WA_AIDA_TOKEN value, if you set one" autoComplete="off" />
+          </div>
+          {error && <p className="text-xs text-terracotta">{error}</p>}
+          <div className="flex justify-end gap-2">
+            {sync.connState !== 'demo' && (
+              <Button variant="secondary" type="button" onClick={() => { actions.disconnect(); setUrl(''); setToken(token) }}>Disconnect</Button>
+            )}
+            <Button type="submit" disabled={busy || !url.trim()}>{busy ? 'Connecting…' : 'Connect'}</Button>
+          </div>
+        </form>
+
+        <div className="mt-6 border-t border-stone-100 pt-4">
+          <label className="flex cursor-pointer items-center justify-between gap-3">
+            <span>
+              <span className="block text-sm font-medium">Use demo data</span>
+              <span className="block text-xs text-navy/50">Sample leads only — zero requests to your sheet. Forced on with <span className="font-mono">?demo=1</span>.</span>
+            </span>
+            <input
+              type="checkbox"
+              className="h-5 w-5 accent-[#25d366]"
+              checked={demo}
+              onChange={(e) => { setDemo(e.target.checked); actions.useDemoData(e.target.checked) }}
+            />
+          </label>
+        </div>
+      </div>
     </div>
   )
 }
