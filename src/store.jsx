@@ -17,6 +17,7 @@ const FOLLOWUPS_KEY = 'waaida-followups'
 const FU_DONE_KEY = 'waaida-fu-done'
 const LINK_SEEN_KEY = 'waaida-link-seen'
 const LINK_POLL_MS = 60000
+const REMOTE_FU_KEY = 'waaida-reminder-ids'
 
 // Maps a raw sheet row (reference/Code.gs list_) to the app lead model.
 function mapRow(r) {
@@ -69,6 +70,14 @@ function loadFuDone() {
   return []
 }
 
+function loadReminderIds() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(REMOTE_FU_KEY))
+    if (parsed && typeof parsed === 'object') return parsed
+  } catch { /* ignore */ }
+  return {}
+}
+
 // Last-seen open counts per link id, so new client opens can raise a badge.
 function loadLinkSeen() {
   try {
@@ -102,6 +111,7 @@ export function StoreProvider({ children }) {
   const [links, setLinks] = useState([]) // tracked links (live mode only)
   const [linkBadges, setLinkBadges] = useState({}) // { leadId: opens-since-last-seen }
   const linkSeenRef = useRef(loadLinkSeen)
+  const reminderIdsRef = useRef(loadReminderIds)
   const linksRef = useRef([])
   const docLeadsRef = useRef(leads)
   docLeadsRef.current = leads
@@ -144,6 +154,7 @@ export function StoreProvider({ children }) {
       setConnState('live')
       // pull meta quietly for the Settings screen (never blocks the list)
       api.meta().then(setMeta).catch(() => {})
+      await syncReminders()
       loadLinks(true)
       return true
     } catch (err) {
@@ -209,6 +220,44 @@ export function StoreProvider({ children }) {
         }
         throw err
       })
+  }
+
+  // ---------- follow-up reminders (Phase 3: fu_* on the brain) ----------
+  // One live reminder row per lead. Server rows win for scheduling state;
+  // local-only entries are migrated (fu_save) on first live load.
+  async function syncReminders() {
+    if (demoRef.current || authFailedRef.current || !hasSavedUrl()) return
+    try {
+      const rows = await api.fuList()
+      const ids = { ...reminderIdsRef.current }
+      let dates = {}
+      try { dates = JSON.parse(localStorage.getItem(FOLLOWUPS_KEY) || '{}') || {} } catch { dates = {} }
+      let dirty = false
+      ;(Array.isArray(rows) ? rows : []).forEach((r) => {
+        if (!r || !r.leadId) return
+        const when = Number(r.when) || 0
+        const d = new Date(when)
+        const p2 = (x) => String(x).padStart(2, '0')
+        const dateStr = when ? d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()) : ''
+        ids[String(r.leadId)] = r.id
+        if (dateStr && !r.done) { dates[String(r.leadId)] = dateStr; dirty = true }
+      })
+      // migrate local-only entries: no server row yet -> create one
+      Object.keys(dates).forEach((leadId) => {
+        if (ids[String(leadId)]) return
+        const l = (docLeadsRef.current || []).find((x) => String(x.id) === String(leadId))
+        if (!l) return
+        const when = new Date(dates[leadId] + 'T09:00:00').getTime()
+        if (!when) return
+        const fid = 'F' + Date.now() + Math.floor(Math.random() * 999)
+        ids[String(leadId)] = fid
+        api.fuSave({ id: fid, leadId: String(leadId), name: l.name, phone: l.phone || '', what: 'Follow-up', when }).catch(() => {})
+        dirty = true
+      })
+      reminderIdsRef.current = ids
+      localStorage.setItem(REMOTE_FU_KEY, JSON.stringify(ids))
+      if (dirty) { setFollowUps(dates); localStorage.setItem(FOLLOWUPS_KEY, JSON.stringify(dates)) }
+    } catch { /* reminders are auxiliary - never block the app */ }
   }
 
   // ---------- tracked links (live mode; demo shows a connect hint) ----------
@@ -404,6 +453,22 @@ export function StoreProvider({ children }) {
         else delete next[String(id)]
         return next
       })
+      if (demoMode || authFailedRef.current || !hasSavedUrl()) return
+      const l = (leadsRef.current || []).find((x) => String(x.id) === String(id))
+      const when = date ? new Date(date + 'T09:00:00').getTime() : 0
+      let fid = reminderIdsRef.current[String(id)]
+      if (!date) {
+        if (fid) { api.fuDel({ id: fid }).catch(() => {}) }
+        delete reminderIdsRef.current[String(id)]
+        localStorage.setItem(REMOTE_FU_KEY, JSON.stringify(reminderIdsRef.current))
+        return
+      }
+      if (!fid) {
+        fid = 'F' + Date.now() + Math.floor(Math.random() * 999)
+        reminderIdsRef.current[String(id)] = fid
+        localStorage.setItem(REMOTE_FU_KEY, JSON.stringify(reminderIdsRef.current))
+      }
+      api.fuSave({ id: fid, leadId: String(id), name: l ? l.name : '', phone: l ? l.phone || '' : '', what: 'Follow-up', when }).catch(() => {})
     },
     markFollowUpDone(id) {
       const dt = new Date()

@@ -103,4 +103,10 @@ export const api = {
   links: () => call('links'),
   deleteLink: (id) => call('linkdel', { id }),
   actLog: (id, label) => call('actlog', { id, label }),
+
+  // Follow-up reminders (Phase 3): one live reminder row per lead on the
+  // Reminders tab. The daily Apps Script trigger emails the digest.
+  fuSave: (r) => call('fu_save', r),
+  fuDel: (id) => call('fu_del', { id }),
+  fuList: () => call('fu_list'),
 }
