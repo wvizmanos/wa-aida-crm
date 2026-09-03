@@ -299,7 +299,7 @@ export function TrackedLinks({ lead }) {
 }
 
 export function LeadDrawer({ lead, onClose, onEdit }) {
-  const { actions, sync } = useStore()
+  const { actions, sync, templates } = useStore()
   const [noteText, setNoteText] = useState(null) // null = pristine (show lead.notes)
   const [followUp, setFollowUp] = useState(null) // null = pristine
 
@@ -368,6 +368,27 @@ export function LeadDrawer({ lead, onClose, onEdit }) {
               )}
             </div>
             {isOverdue(followUpValue) && <p className="mt-1 text-xs font-medium text-amber">⚠ overdue</p>}
+          </div>
+
+          <div>
+            <h3 className="mb-2 text-sm font-semibold">Quick message</h3>
+            <div className="flex flex-wrap gap-2">
+              {templates.map((t) => (
+                <button
+                  key={t.id}
+                  title={t.body}
+                  onClick={() => {
+                    const msg = t.body.replace(/\{name\}/g, lead.name.split(' ')[0] || 'there').replace(/\{product\}/g, lead.product || 'it')
+                    window.open('https://wa.me/' + waNumber + '?text=' + encodeURIComponent(msg), '_blank', 'noopener')
+                    actions.bumpTplUse(t.id)
+                  }}
+                  className="rounded-full border border-stone-200 bg-white px-3 py-1.5 text-xs font-medium text-navy transition-colors hover:border-wagreen hover:text-deepgreen focus:outline-none focus-visible:ring-2 focus-visible:ring-wagreen/50"
+                >
+                  {t.name}
+                </button>
+              ))}
+            </div>
+            <p className="mt-1 text-[11px] text-navy/40">Opens WhatsApp with the message filled in for {lead.name.split(' ')[0] || 'this lead'}.</p>
           </div>
 
           <div className="flex gap-2">

@@ -109,4 +109,11 @@ export const api = {
   fuSave: (r) => call('fu_save', r),
   fuDel: (id) => call('fu_del', { id }),
   fuList: () => call('fu_list'),
+
+  // Message templates (Phase 3): defaults live in code; user edits are
+  // upserted to the Templates tab so they survive cache clears.
+  tplSave: (r) => call('tpl_save', r),
+  tplDel: (id) => call('tpl_del', { id }),
+  tplList: () => call('tpl_list'),
+  tplUse: (id, base) => call('tpl_use', { id, base }),
 }

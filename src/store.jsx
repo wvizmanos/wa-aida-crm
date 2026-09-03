@@ -18,6 +18,15 @@ const FU_DONE_KEY = 'waaida-fu-done'
 const LINK_SEEN_KEY = 'waaida-link-seen'
 const LINK_POLL_MS = 60000
 const REMOTE_FU_KEY = 'waaida-reminder-ids'
+const TPL_EDITS_KEY = 'waaida-tpl-edits'
+const TPL_USES_KEY = 'waaida-tpl-uses'
+const TPL_TOMB_KEY = 'waaida-tpl-tomb'
+const DEFAULT_TEMPLATES = [
+  { id: 't1', name: 'First touch', body: 'Hi {name}! Thanks for reaching out about {product}. I can send a quick quote today — would you like that?' },
+  { id: 't2', name: 'Promo nudge', body: 'Hi {name}, quick follow-up on your {product} inquiry. Our promo ends Friday — want me to reserve your slot?' },
+  { id: 't3', name: 'Price list', body: 'Hi {name}! Here is the price list you asked for. Happy to walk you through it on a call.' },
+  { id: 't4', name: 'Warm follow-up', body: 'Hi {name}! Just checking in — did you get a chance to review the quote for {product}?' },
+]
 
 // Maps a raw sheet row (reference/Code.gs list_) to the app lead model.
 function mapRow(r) {
@@ -70,6 +79,28 @@ function loadFuDone() {
   return []
 }
 
+function loadTplEdits() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(TPL_EDITS_KEY))
+    if (parsed && typeof parsed === 'object') return parsed
+  } catch { /* ignore */ }
+  return {}
+}
+function loadTplUses() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(TPL_USES_KEY))
+    if (parsed && typeof parsed === 'object') return parsed
+  } catch { /* ignore */ }
+  return {}
+}
+function loadTplTomb() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(TPL_TOMB_KEY))
+    if (Array.isArray(parsed)) return parsed
+  } catch { /* ignore */ }
+  return []
+}
+
 function loadReminderIds() {
   try {
     const parsed = JSON.parse(localStorage.getItem(REMOTE_FU_KEY))
@@ -112,6 +143,13 @@ export function StoreProvider({ children }) {
   const [linkBadges, setLinkBadges] = useState({}) // { leadId: opens-since-last-seen }
   const linkSeenRef = useRef(loadLinkSeen)
   const reminderIdsRef = useRef(loadReminderIds)
+  const [tplEdits, setTplEdits] = useState(loadTplEdits)
+  const [tplUses, setTplUses] = useState(loadTplUses)
+  const tplEditsRef = useRef(tplEdits)
+  tplEditsRef.current = tplEdits
+  const tplUsesRef = useRef(tplUses)
+  tplUsesRef.current = tplUses
+  const tplTombRef = useRef(loadTplTomb)
   const linksRef = useRef([])
   const docLeadsRef = useRef(leads)
   docLeadsRef.current = leads
@@ -155,6 +193,7 @@ export function StoreProvider({ children }) {
       // pull meta quietly for the Settings screen (never blocks the list)
       api.meta().then(setMeta).catch(() => {})
       await syncReminders()
+      await syncTemplates()
       loadLinks(true)
       return true
     } catch (err) {
@@ -258,6 +297,34 @@ export function StoreProvider({ children }) {
       localStorage.setItem(REMOTE_FU_KEY, JSON.stringify(ids))
       if (dirty) { setFollowUps(dates); localStorage.setItem(FOLLOWUPS_KEY, JSON.stringify(dates)) }
     } catch { /* reminders are auxiliary - never block the app */ }
+  }
+
+  // Templates: pull user edits + usage counts from the brain; local wins
+  // only when newer. Tombstoned ids (reset on this device) stay reset.
+  async function syncTemplates() {
+    if (demoRef.current || authFailedRef.current || !hasSavedUrl()) return
+    try {
+      const rows = await api.tplList()
+      let editsChanged = false, usesChanged = false
+      ;(Array.isArray(rows) ? rows : []).forEach((r) => {
+        if (!r || !r.id) return
+        if (!tplTombRef.current.includes(String(r.id))) {
+          const cur = tplEditsRef.current[r.id]
+          const ru = Number(new Date(r.updated).getTime()) || 0
+          if ((!cur || ru > (Number(cur.at) || 0)) && r.name && r.body) {
+            tplEditsRef.current = { ...tplEditsRef.current, [String(r.id)]: { name: r.name, body: r.body, at: ru || Date.now(), synced: '1' } }
+            editsChanged = true
+          }
+        }
+        const uses = Number(r.uses) || 0
+        if (uses > (tplUsesRef.current[r.id] || 0)) {
+          tplUsesRef.current = { ...tplUsesRef.current, [String(r.id)]: uses }
+          usesChanged = true
+        }
+      })
+      if (editsChanged) { setTplEdits(tplEditsRef.current); localStorage.setItem(TPL_EDITS_KEY, JSON.stringify(tplEditsRef.current)) }
+      if (usesChanged) { setTplUses(tplUsesRef.current); localStorage.setItem(TPL_USES_KEY, JSON.stringify(tplUsesRef.current)) }
+    } catch { /* templates are auxiliary */ }
   }
 
   // ---------- tracked links (live mode; demo shows a connect hint) ----------
@@ -573,6 +640,50 @@ export function StoreProvider({ children }) {
       clearLinkBadge(leadId)
     },
 
+    saveTemplate(id, name, body) {
+      if (!name || !body) { pushToast('Give it a name and a message', 'error'); return }
+      tplEditsRef.current = { ...tplEditsRef.current, [id]: { name, body, at: Date.now(), synced: '1' } }
+      setTplEdits(tplEditsRef.current)
+      localStorage.setItem(TPL_EDITS_KEY, JSON.stringify(tplEditsRef.current))
+      if (demoMode || authFailedRef.current) { pushToast('Template saved (demo data only)', 'success'); return }
+      api.tplSave({ id, name, body }).catch(() => {
+        const e = tplEditsRef.current[id]
+        if (e) {
+          tplEditsRef.current = { ...tplEditsRef.current, [id]: { ...e, synced: '' } }
+          localStorage.setItem(TPL_EDITS_KEY, JSON.stringify(tplEditsRef.current))
+        }
+      })
+      pushToast('Template saved', 'success')
+    },
+    resetTemplate(id) {
+      const next = { ...tplEditsRef.current }
+      delete next[id]
+      tplEditsRef.current = next
+      setTplEdits(next)
+      localStorage.setItem(TPL_EDITS_KEY, JSON.stringify(next))
+      if (!tplTombRef.current.includes(String(id))) {
+        tplTombRef.current = [...tplTombRef.current, String(id)]
+        localStorage.setItem(TPL_TOMB_KEY, JSON.stringify(tplTombRef.current))
+      }
+      if (demoMode || authFailedRef.current) { pushToast('Template reset to default', 'success'); return }
+      api.tplDel({ id }).catch(() => {})
+      pushToast('Template reset to default', 'success')
+    },
+    bumpTplUse(id) {
+      tplUsesRef.current = { ...tplUsesRef.current, [id]: (tplUsesRef.current[id] || 0) + 1 }
+      setTplUses(tplUsesRef.current)
+      localStorage.setItem(TPL_USES_KEY, JSON.stringify(tplUsesRef.current))
+      if (demoMode || authFailedRef.current) return
+      const base = (tplUsesRef.current || {})[id] || 0
+      api.tplUse({ id, base }).then((res) => {
+        if (res && res.uses != null && res.uses !== tplUsesRef.current[id]) {
+          tplUsesRef.current = { ...tplUsesRef.current, [id]: res.uses }
+          setTplUses(tplUsesRef.current)
+          localStorage.setItem(TPL_USES_KEY, JSON.stringify(tplUsesRef.current))
+        }
+      }).catch(() => {})
+    },
+
     linksFor(leadId) {
       return linksRef.current.filter((ln) => String(ln.leadId) === String(leadId))
     },
@@ -607,7 +718,15 @@ export function StoreProvider({ children }) {
     }).length,
   }
 
-  return <StoreContext.Provider value={{ leads: uiLeads, actions, sync, pushToast, links, linkBadges }}>{children}</StoreContext.Provider>
+  function tplAll() {
+    return DEFAULT_TEMPLATES.map((t) => {
+      if (tplTombRef.current.includes(t.id)) return t
+      const e = tplEditsRef.current[t.id]
+      return e ? { ...t, name: e.name, body: e.body, edited: 1 } : t
+    })
+  }
+
+  return <StoreContext.Provider value={{ leads: uiLeads, actions, sync, pushToast, links, linkBadges, templates: tplAll(), tplUses }}>{children}</StoreContext.Provider>
 }
 
 export function useStore() {

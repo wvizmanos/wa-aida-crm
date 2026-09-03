@@ -4,7 +4,7 @@ import { SOURCES, STAGES } from './data'
 import { useMemo, useState } from 'react'
 
 export default function Followups({ onOpenLead }) {
-  const { leads, actions } = useStore()
+  const { leads, actions, templates, tplUses, sync } = useStore()
   const [search, setSearch] = useState('')
   const [sourceFilter, setSourceFilter] = useState('All')
   const rows = useMemo(() => {
@@ -87,6 +87,77 @@ export default function Followups({ onOpenLead }) {
           )}
         </div>
       )}
+
+      <TemplateManager demoMode={sync.demoMode} />
+    </div>
+  )
+}
+
+function TemplateManager({ demoMode }) {
+  const { templates, tplUses, actions } = useStore()
+  const [editing, setEditing] = useState(null)
+  return (
+    <div className="mt-10">
+      <div className="mb-2 flex items-center justify-between px-1">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-navy/50">Message templates</h3>
+        {demoMode && <span className="text-[11px] font-medium text-amber">demo — edits stay on this device</span>}
+      </div>
+      <div className="space-y-2">
+        {templates.map((t) => (
+          <div key={t.id} className="rounded-xl border border-stone-200 bg-white px-4 py-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="font-medium">
+                {t.name}
+                {t.edited && <span className="ml-2 text-[11px] font-normal text-navy/40">edited</span>}
+              </p>
+              <button
+                onClick={() => setEditing({ id: t.id, name: t.name, body: t.body })}
+                className="text-xs font-medium text-deepgreen transition-colors hover:text-navy focus:outline-none focus-visible:ring-2 focus-visible:ring-deepgreen/50"
+              >
+                ✎ Edit
+              </button>
+            </div>
+            <p className="mt-1 text-sm text-navy/60">"{t.body}"</p>
+            <p className="mt-1 text-[11px] text-navy/40">used {tplUses[t.id] || 0}×</p>
+            {editing && editing.id === t.id && (
+              <div className="mt-3 space-y-2 rounded-lg border border-wagreen/40 bg-wagreen/5 p-3">
+                <input
+                  className={inputCls}
+                  value={editing.name}
+                  onChange={(e) => setEditing({ ...editing, name: e.target.value })}
+                  placeholder="Template name"
+                />
+                <textarea
+                  className={`${inputCls} min-h-20 resize-y`}
+                  value={editing.body}
+                  onChange={(e) => setEditing({ ...editing, body: e.target.value })}
+                  placeholder="Hi {name}! … {product}"
+                />
+                <p className="text-[11px] text-navy/40">Placeholders: {'{name}'} = first name, {'{product}'} = what they asked about.</p>
+                <div className="flex justify-end gap-2">
+                  {t.edited && (
+                    <button
+                      onClick={() => { actions.resetTemplate(t.id); setEditing(null) }}
+                      className="rounded-lg border border-stone-200 px-3 py-1.5 text-xs font-medium text-navy/70 transition-colors hover:bg-stone-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-300"
+                    >
+                      Reset to default
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      actions.saveTemplate(editing.id, editing.name.trim(), editing.body.trim())
+                      setEditing(null)
+                    }}
+                    className="rounded-lg bg-deepgreen px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-deepgreen/85 focus:outline-none focus-visible:ring-2 focus-visible:ring-deepgreen/50"
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
