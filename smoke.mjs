@@ -1,0 +1,17 @@
+﻿import puppeteer from 'puppeteer';
+const url = process.argv[2] || 'http://localhost:5173/wa-aida-crm/';
+const browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox'] });
+const page = await browser.newPage();
+const errors = [];
+page.on('console', m => { if (['error','warning'].includes(m.type())) errors.push(`[console.${m.type()}] ${m.text()}`); });
+page.on('pageerror', e => errors.push(`[pageerror] ${e.message}`));
+page.on('requestfailed', r => errors.push(`[requestfailed] ${r.url()} :: ${r.failure() ? r.failure().errorText : '?'}`));
+await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
+await new Promise(r => setTimeout(r, 3000));
+const rootLen = await page.evaluate(() => (document.getElementById('root') ? document.getElementById('root').innerHTML.length : -1));
+const bodyText = await page.evaluate(() => (document.body.innerText || '').slice(0, 400));
+console.log('ROOT HTML LEN:', rootLen);
+console.log('BODY TEXT:', JSON.stringify(bodyText));
+console.log('ERRORS (' + errors.length + '):');
+console.log(errors.slice(0, 25).join('\n') || 'none');
+await browser.close();
