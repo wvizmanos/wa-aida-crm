@@ -379,8 +379,12 @@ export function LeadDrawer({ lead, onClose, onEdit }) {
                   title={t.body}
                   onClick={() => {
                     const msg = t.body.replace(/\{name\}/g, lead.name.split(' ')[0] || 'there').replace(/\{product\}/g, lead.product || 'it')
-                    window.open('https://wa.me/' + waNumber + '?text=' + encodeURIComponent(msg), '_blank', 'noopener')
-                    actions.bumpTplUse(t.id)
+                    if (sync.connState === 'live') {
+                      actions.sendWhatsApp(lead, t)
+                    } else {
+                      window.open('https://wa.me/' + waNumber + '?text=' + encodeURIComponent(msg), '_blank', 'noopener')
+                      actions.bumpTplUse(t.id)
+                    }
                   }}
                   className="rounded-full border border-stone-200 bg-white px-3 py-1.5 text-xs font-medium text-navy transition-colors hover:border-wagreen hover:text-deepgreen focus:outline-none focus-visible:ring-2 focus-visible:ring-wagreen/50"
                 >
@@ -388,7 +392,7 @@ export function LeadDrawer({ lead, onClose, onEdit }) {
                 </button>
               ))}
             </div>
-            <p className="mt-1 text-[11px] text-navy/40">Opens WhatsApp with the message filled in for {lead.name.split(' ')[0] || 'this lead'}.</p>
+            <p className="mt-1 text-[11px] text-navy/40">{sync.connState === 'live' ? 'One tap sends from your business number and logs it on the lead.' : 'Opens WhatsApp with the message filled in - connect the sheet to auto-send.'}</p>
           </div>
 
           <div className="flex gap-2">

@@ -684,6 +684,32 @@ export function StoreProvider({ children }) {
       }).catch(() => {})
     },
 
+    async sendWhatsApp(lead, tpl) {
+      if (!lead || !tpl) return { ok: false, error: 'nothing to send' }
+      if (demoMode || authFailedRef.current) return { ok: false, error: 'demo mode - connect the sheet to auto-send' }
+      const digits = String(lead.phone || '').replace(/[^0-9]/g, '')
+      if (!digits) { pushToast('This lead has no phone number yet', 'error'); return { ok: false, error: 'phone missing' } }
+      const msg = String(tpl.body || '')
+        .replace(/\{name\}/g, String(lead.name || '').split(' ')[0] || 'there')
+        .replace(/\{product\}/g, lead.product || 'it')
+      pushToast('Sending via WhatsApp...', 'info')
+      try {
+        const r = await api.waSend(digits, msg)
+        if (r && r.ok) {
+          this.bumpTplUse(tpl.id)
+          api.actLog(String(lead.id), 'WhatsApp sent: ' + (tpl.name || 'quick message')).catch(() => {})
+          setLeads((ls) => ls.map((l) => (String(l.id) === String(lead.id) ? { ...l, activity: [...(l.activity || []), { t: 'wa', ts: new Date().toISOString(), label: 'WhatsApp sent: ' + (tpl.name || 'quick message') }] } : l)))
+          pushToast('Sent to ' + String(lead.name || '').split(' ')[0], 'success')
+        } else {
+          pushToast('WhatsApp: ' + ((r && r.error) || 'send failed'), 'error')
+        }
+        return r
+      } catch (e) {
+        pushToast('WhatsApp: ' + ((e && e.message) || 'send failed'), 'error')
+        return { ok: false, error: String((e && e.message) || e) }
+      }
+    },
+
     linksFor(leadId) {
       return linksRef.current.filter((ln) => String(ln.leadId) === String(leadId))
     },

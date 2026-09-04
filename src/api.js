@@ -104,6 +104,9 @@ export const api = {
   deleteLink: (id) => call('linkdel', { id }),
   actLog: (id, label) => call('actlog', { id, label }),
 
+  // WhatsApp Cloud API send (slice 2): backend waSend_ posts to Meta.
+  waSend: (phone, text) => call('wa_send', { phone, text }),
+
   // Follow-up reminders (Phase 3): one live reminder row per lead on the
   // Reminders tab. The daily Apps Script trigger emails the digest.
   fuSave: (r) => call('fu_save', r),
