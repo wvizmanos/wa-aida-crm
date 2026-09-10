@@ -40,3 +40,30 @@ WABA that owns WA_WABA_PHONE.
 - Remote check: call action=wa_send with a dummy number - Meta should
   answer with a recipient error (proves auth + routing work) instead of
   "Authentication Error" (which means the token is wrong for this WABA).
+
+## The 24-hour window - the #1 gotcha (VERIFIED 9/10)
+
+Meta only allows a business to send FREE-FORM TEXT to a user who messaged
+the business number within the last 24 hours. Outside that window, sends
+may be accepted by the API but are not delivered (or are rejected).
+
+- Inbound-first flows: a lead messages your business number -> you can
+  reply freely via the drawer's Quick message chips for the next 24 hours.
+  This is VERIFIED WORKING end-to-end (9/10): send arrived + activity
+  logged "WhatsApp sent: <template>" + usage counter bumped.
+- Cold outreach (a lead who never messaged you first): REQUIRES a
+  Meta-approved message template. Build item: wa_send template mode.
+
+### The test that proves the pipe (30 seconds)
+
+1. From your personal WhatsApp, message your business number ("hi").
+2. Immediately send from the CRM: open the lead > Quick message > chip.
+3. The message arrives; the lead's timeline shows the send.
+
+### If a send says success but nothing arrives
+
+1. Did the recipient message your business within 24h? (the window above)
+2. Is the recipient in Meta > WhatsApp > API Setup > "To" list? (test mode)
+3. Phone format: the app normalizes 09xx/9xx/+63 to international digits
+   automatically (shipped 9/10) - but check the number is real.
+4. WhatsApp Manager > Insights shows per-message delivery status.
