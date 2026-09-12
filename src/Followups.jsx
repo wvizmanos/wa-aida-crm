@@ -111,7 +111,7 @@ function TemplateManager({ demoMode }) {
                 {t.edited && <span className="ml-2 text-[11px] font-normal text-navy/40">edited</span>}
               </p>
               <button
-                onClick={() => setEditing({ id: t.id, name: t.name, body: t.body })}
+                onClick={() => setEditing({ id: t.id, name: t.name, body: t.body, metaName: t.metaName || '', metaLang: t.metaLang || '' })}
                 className="text-xs font-medium text-deepgreen transition-colors hover:text-navy focus:outline-none focus-visible:ring-2 focus-visible:ring-deepgreen/50"
               >
                 ✎ Edit
@@ -134,6 +134,21 @@ function TemplateManager({ demoMode }) {
                   placeholder="Hi {name}! … {product}"
                 />
                 <p className="text-[11px] text-navy/40">Placeholders: {'{name}'} = first name, {'{product}'} = what they asked about.</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    className={inputCls}
+                    value={editing.metaName || ''}
+                    onChange={(e) => setEditing({ ...editing, metaName: e.target.value })}
+                    placeholder="Meta template name (cold send)"
+                  />
+                  <input
+                    className={inputCls}
+                    value={editing.metaLang || ''}
+                    onChange={(e) => setEditing({ ...editing, metaLang: e.target.value })}
+                    placeholder="Meta language (e.g. en)"
+                  />
+                </div>
+                <p className="text-[11px] text-navy/40">Cold send only: exact Meta template name + language from WhatsApp Manager. Leave empty if this one is warm-only.</p>
                 <div className="flex justify-end gap-2">
                   {t.edited && (
                     <button
@@ -145,7 +160,7 @@ function TemplateManager({ demoMode }) {
                   )}
                   <button
                     onClick={() => {
-                      actions.saveTemplate(editing.id, editing.name.trim(), editing.body.trim())
+                      actions.saveTemplate(editing.id, editing.name.trim(), editing.body.trim(), { metaName: (editing.metaName || '').trim(), metaLang: (editing.metaLang || '').trim() })
                       setEditing(null)
                     }}
                     className="rounded-lg bg-deepgreen px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-deepgreen/85 focus:outline-none focus-visible:ring-2 focus-visible:ring-deepgreen/50"

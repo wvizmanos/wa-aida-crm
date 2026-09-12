@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { STAGE_IDS, SOURCE_IDS, sampleLeads, sampleFollowUps } from './data'
+import { STAGE_IDS, SOURCE_IDS, sampleLeads, sampleFollowUps, waTarget } from './data'
 import { api, forceDemo, getConnection, saveConnection, clearConnection, setDemoFlag, ApiError } from './api'
 
 /* Sheets-backed store (migration Phase 1).
@@ -640,9 +640,10 @@ export function StoreProvider({ children }) {
       clearLinkBadge(leadId)
     },
 
-    saveTemplate(id, name, body) {
+    saveTemplate(id, name, body, meta) {
       if (!name || !body) { pushToast('Give it a name and a message', 'error'); return }
-      tplEditsRef.current = { ...tplEditsRef.current, [id]: { name, body, at: Date.now(), synced: '1' } }
+      const prevTpl = tplEditsRef.current[id] || {}
+      tplEditsRef.current = { ...tplEditsRef.current, [id]: { ...prevTpl, name, body, metaName: (meta && meta.metaName) || prevTpl.metaName || '', metaLang: (meta && meta.metaLang) || prevTpl.metaLang || '', at: Date.now(), synced: '1' } }
       setTplEdits(tplEditsRef.current)
       localStorage.setItem(TPL_EDITS_KEY, JSON.stringify(tplEditsRef.current))
       if (demoMode || authFailedRef.current) { pushToast('Template saved (demo data only)', 'success'); return }
@@ -687,7 +688,7 @@ export function StoreProvider({ children }) {
     async sendWhatsApp(lead, tpl) {
       if (!lead || !tpl) return { ok: false, error: 'nothing to send' }
       if (demoMode || authFailedRef.current) return { ok: false, error: 'demo mode - connect the sheet to auto-send' }
-      const digits = String(lead.phone || '').replace(/[^0-9]/g, '')
+      const digits = waTarget(lead.phone)
       if (!digits) { pushToast('This lead has no phone number yet', 'error'); return { ok: false, error: 'phone missing' } }
       const msg = String(tpl.body || '')
         .replace(/\{name\}/g, String(lead.name || '').split(' ')[0] || 'there')
@@ -700,6 +701,32 @@ export function StoreProvider({ children }) {
           api.actLog(String(lead.id), 'WhatsApp sent: ' + (tpl.name || 'quick message')).catch(() => {})
           setLeads((ls) => ls.map((l) => (String(l.id) === String(lead.id) ? { ...l, activity: [...(l.activity || []), { t: 'wa', ts: new Date().toISOString(), label: 'WhatsApp sent: ' + (tpl.name || 'quick message') }] } : l)))
           pushToast('Sent to ' + String(lead.name || '').split(' ')[0], 'success')
+        } else {
+          pushToast('WhatsApp: ' + ((r && r.error) || 'send failed'), 'error')
+        }
+        return r
+      } catch (e) {
+        pushToast('WhatsApp: ' + ((e && e.message) || 'send failed'), 'error')
+        return { ok: false, error: String((e && e.message) || e) }
+      }
+    },
+
+    async sendWhatsAppTemplate(lead, tpl) {
+      if (!lead || !tpl) return { ok: false, error: 'nothing to send' }
+      if (demoMode || authFailedRef.current) return { ok: false, error: 'demo mode - connect the sheet to auto-send' }
+      if (!tpl.metaName) { pushToast('No Meta template mapped - add it in Follow-ups > Message templates', 'error'); return { ok: false, error: 'no meta template' } }
+      const digits = waTarget(lead.phone)
+      if (!digits) { pushToast('This lead has no phone number yet', 'error'); return { ok: false, error: 'phone missing' } }
+      const vars = [String(lead.name || '').split(' ')[0] || 'there']
+      pushToast('Sending template...', 'info')
+      try {
+        const r = await api.waSendTemplate(digits, tpl.metaName, tpl.metaLang || 'en', vars)
+        if (r && r.ok) {
+          this.bumpTplUse(tpl.id)
+          const label = 'WhatsApp template sent: ' + (tpl.metaName || tpl.name)
+          api.actLog(String(lead.id), label).catch(() => {})
+          setLeads((ls) => ls.map((l) => (String(l.id) === String(lead.id) ? { ...l, activity: [...(l.activity || []), { t: 'wa', ts: new Date().toISOString(), label }] } : l)))
+          pushToast('Template sent to ' + String(lead.name || '').split(' ')[0], 'success')
         } else {
           pushToast('WhatsApp: ' + ((r && r.error) || 'send failed'), 'error')
         }
@@ -748,7 +775,7 @@ export function StoreProvider({ children }) {
     return DEFAULT_TEMPLATES.map((t) => {
       if (tplTombRef.current.includes(t.id)) return t
       const e = tplEditsRef.current[t.id]
-      return e ? { ...t, name: e.name, body: e.body, edited: 1 } : t
+      return e ? { ...t, name: e.name, body: e.body, edited: 1, metaName: e.metaName || '', metaLang: e.metaLang || '' } : t
     })
   }
 

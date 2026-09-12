@@ -106,6 +106,7 @@ export const api = {
 
   // WhatsApp Cloud API send (slice 2): backend waSend_ posts to Meta.
   waSend: (phone, text) => call('wa_send', { phone, text }),
+  waSendTemplate: (phone, tplName, lang, vars) => call('wa_send', { phone, tplName, lang, vars: JSON.stringify(vars || []) }),
 
   // Follow-up reminders (Phase 3): one live reminder row per lead on the
   // Reminders tab. The daily Apps Script trigger emails the digest.

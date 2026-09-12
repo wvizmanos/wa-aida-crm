@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { SOURCE_STYLES, SOURCES, STAGES, sourceLabel } from './data'
+import { SOURCE_STYLES, SOURCES, STAGES, sourceLabel, waTarget } from './data'
 import { formatDate, formatPeso, isOverdue, todayISO, useStore } from './store'
 import { getConnection } from './api'
 
@@ -185,7 +185,7 @@ export function TrackedLinks({ lead }) {
       if (res && res.id) {
         localStorage.setItem('waaida-proposal-url', url.trim())
         const msg = 'Here is your proposal: ' + res.trackUrl
-        const digits = String(lead.phone || '').replace(/[^0-9]/g, '').replace(/^0/, '')
+        const digits = waTarget(lead.phone)
         if (channel === 'whatsapp') {
           window.open(`https://wa.me/${digits}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener')
         } else if (channel === 'viber') {
@@ -302,6 +302,7 @@ export function LeadDrawer({ lead, onClose, onEdit }) {
   const { actions, sync, templates } = useStore()
   const [noteText, setNoteText] = useState(null) // null = pristine (show lead.notes)
   const [followUp, setFollowUp] = useState(null) // null = pristine
+  const [coldMode, setColdMode] = useState(false)
 
   // Opening a drawer acknowledges that lead's link-open badges.
   useEffect(() => {
@@ -314,7 +315,7 @@ export function LeadDrawer({ lead, onClose, onEdit }) {
   const followUpValue = followUp ?? lead.nextFollowUp ?? ''
   const notesDirty = noteText !== null && noteText !== (lead.notes || '')
   const followUpDirty = followUp !== null && followUp !== (lead.nextFollowUp || '')
-  const waNumber = lead.phone.replace(/[^\d]/g, '').replace(/^0/, '')
+  const waNumber = waTarget(lead.phone)
   const waLink = `https://wa.me/${waNumber}`
   const activity = lead.activity || []
 
@@ -371,7 +372,13 @@ export function LeadDrawer({ lead, onClose, onEdit }) {
           </div>
 
           <div>
-            <h3 className="mb-2 text-sm font-semibold">Quick message</h3>
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <h3 className="text-sm font-semibold">Quick message</h3>
+              <div className="flex overflow-hidden rounded-full border border-stone-200">
+                <button className={'px-2.5 py-1 text-[11px] font-medium ' + (coldMode ? 'bg-white text-navy/50' : 'bg-navy text-white')} onClick={() => setColdMode(false)}>Warm</button>
+                <button className={'px-2.5 py-1 text-[11px] font-medium ' + (coldMode ? 'bg-navy text-white' : 'bg-white text-navy/50')} onClick={() => setColdMode(true)}>Cold</button>
+              </div>
+            </div>
             <div className="flex flex-wrap gap-2">
               {templates.map((t) => (
                 <button
@@ -380,19 +387,26 @@ export function LeadDrawer({ lead, onClose, onEdit }) {
                   onClick={() => {
                     const msg = t.body.replace(/\{name\}/g, lead.name.split(' ')[0] || 'there').replace(/\{product\}/g, lead.product || 'it')
                     if (sync.connState === 'live') {
-                      actions.sendWhatsApp(lead, t)
+                      if (coldMode) actions.sendWhatsAppTemplate(lead, t)
+                      else actions.sendWhatsApp(lead, t)
                     } else {
                       window.open('https://wa.me/' + waNumber + '?text=' + encodeURIComponent(msg), '_blank', 'noopener')
                       actions.bumpTplUse(t.id)
                     }
                   }}
-                  className="rounded-full border border-stone-200 bg-white px-3 py-1.5 text-xs font-medium text-navy transition-colors hover:border-wagreen hover:text-deepgreen focus:outline-none focus-visible:ring-2 focus-visible:ring-wagreen/50"
+                  className={'rounded-full border border-stone-200 bg-white px-3 py-1.5 text-xs font-medium text-navy transition-colors hover:border-wagreen hover:text-deepgreen focus:outline-none focus-visible:ring-2 focus-visible:ring-wagreen/50' + (coldMode && !t.metaName ? ' opacity-50' : '')}
                 >
                   {t.name}
                 </button>
               ))}
             </div>
-            <p className="mt-1 text-[11px] text-navy/40">{sync.connState === 'live' ? 'One tap sends from your business number and logs it on the lead.' : 'Opens WhatsApp with the message filled in - connect the sheet to auto-send.'}</p>
+            <p className="mt-1 text-[11px] text-navy/40">
+              {sync.connState !== 'live'
+                ? 'Opens WhatsApp with the message filled in - connect the sheet to auto-send.'
+                : coldMode
+                  ? "Cold send: uses each template's Meta-approved version - works even if the lead never messaged you."
+                  : 'Warm send: one tap from your business number (lead messaged you within 24h).'}
+            </p>
           </div>
 
           <div className="flex gap-2">
