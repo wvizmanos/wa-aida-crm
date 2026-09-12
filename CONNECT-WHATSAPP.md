@@ -67,3 +67,24 @@ may be accepted by the API but are not delivered (or are rejected).
 3. Phone format: the app normalizes 09xx/9xx/+63 to international digits
    automatically (shipped 9/10) - but check the number is real.
 4. WhatsApp Manager > Insights shows per-message delivery status.
+
+## Marketing template frequency cap (VERIFIED 9/12)
+
+Meta rations MARKETING-category template messages PER USER PER 24 HOURS.
+By default a user receives only ~1-2 marketing messages in 24h; further
+sends are ACCEPTED by the API (success + message id) but NOT delivered.
+A new marketing communication can start only after the 24h window rolls.
+
+Evidence 9/12: first marketing template to a cold number (10:59) delivered;
+two more sends to the same number (16:33, 16:36) accepted but dropped.
+
+Practical rules:
+- One marketing template per lead per day is a sane outreach cadence anyway.
+- For tests: use a FRESH number, or wait out 24h since the last marketing
+  message to that number.
+- For transactional messages (quote ready, reminder tied to a request),
+  prefer a UTILITY-category template - utility messages are not governed by
+  the marketing frequency cap and deliver outside the 24h window.
+
+Source: industry documentation on WhatsApp frequency capping (Infobip,
+"WhatsApp frequency capping"; Meta for Developers "Messaging Limits").
