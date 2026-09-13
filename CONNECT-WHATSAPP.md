@@ -88,3 +88,26 @@ Practical rules:
 
 Source: industry documentation on WhatsApp frequency capping (Infobip,
 "WhatsApp frequency capping"; Meta for Developers "Messaging Limits").
+
+## UPDATE 9/14 - the marketing window law, CONFIRMED empirically
+
+Testing across two numbers resolved the model:
+
+- 9/14 05:08: cold marketing template to the personal number (2.5 quiet
+  days since its last marketing attempt) -> DELIVERED.
+- Irene (6399***992): five attempts, all within <24h of each other
+  (9/12 16:33, 16:36; 9/13 12:28, 19:46) -> all dropped, each re-arming
+  the window.
+
+THE LAW: per user, one marketing template delivers per ~24h window. Any
+new attempt inside the window is dropped AND resets the clock. First-ever
+contact to a number always delivers.
+
+PRACTICAL RULES (put these in the app's habits):
+1. One marketing template per lead, then WAIT - do not retry. A retry is
+   not just useless, it extends the recipient's block.
+2. Need a second touch within 24h? It must be a UTILITY template (exempt
+   from the marketing cap) or wait for the lead to reply (opens the free
+   window).
+3. For tests: fresh numbers always deliver; used numbers need 24h+ of
+   silence since the LAST ATTEMPT.
