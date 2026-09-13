@@ -111,3 +111,18 @@ PRACTICAL RULES (put these in the app's habits):
    window).
 3. For tests: fresh numbers always deliver; used numbers need 24h+ of
    silence since the LAST ATTEMPT.
+
+## UPDATE 9/14 05:21 - UTILITY EXEMPTION CONFIRMED
+
+Same number (the personal/admin line), same hour:
+- 05:08 marketing template (first_touch_v1) -> delivered
+- 05:21 UTILITY template (quote_ready_v1) -> delivered (a second touch
+  within the marketing window, let through because of the category)
+
+FINAL WHATSAPP PLAYBOOK:
+1. Warm (lead messaged you <24h): free-form chips, unlimited in-window.
+2. Cold, first contact: marketing template - always delivers.
+3. Cold, repeat within 24h: marketing is capped (and retries re-arm the
+   block) -> use a UTILITY template instead; it bypasses the marketing cap.
+4. Operational: map at least one app template to your utility template
+   (e.g. "Price Quotation" -> quote_ready_v1) for second touches.
