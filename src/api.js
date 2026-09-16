@@ -120,4 +120,10 @@ export const api = {
   tplDel: (id) => call('tpl_del', { id }),
   tplList: () => call('tpl_list'),
   tplUse: (id, base) => call('tpl_use', { id, base }),
+
+  // Proposals (ported from V19): compose in the drawer; clients open the
+  // hosted proposal page and can accept - the lead moves to Won.
+  proposalCreate: (data) => call('proposal_create', data),
+  proposalList: (leadId) => call('proposal_list', { leadId }),
+  proposalDel: (id) => call('proposal_del', { id }),
 }

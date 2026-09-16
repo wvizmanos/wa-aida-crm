@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { SOURCE_STYLES, SOURCES, STAGES, sourceLabel, waTarget } from './data'
 import { formatDate, formatPeso, isOverdue, todayISO, useStore } from './store'
-import { getConnection } from './api'
+import { api, getConnection } from './api'
 
 // ---------- small shared bits ----------
 
@@ -458,6 +458,10 @@ export function LeadDrawer({ lead, onClose, onEdit }) {
           </div>
 
           <div className="border-t border-stone-100 pt-4">
+            <Proposals lead={lead} />
+          </div>
+
+          <div className="border-t border-stone-100 pt-4">
             <Button
               variant="danger"
               onClick={() => {
@@ -571,6 +575,147 @@ export function SettingsModal({ onClose }) {
             />
           </label>
         </div>
+      </div>
+    </div>
+  )
+}
+
+
+// ---------- Proposals (ported from the V19 CRM) ----------
+
+const EMPTY_PROPOSAL = { title: '', amount: '', services: '', message: '', validity: '14' }
+
+function proposalOpens(p) {
+  try { const a = JSON.parse(p.opens || '[]'); return Array.isArray(a) ? a.length : 0 } catch (e) { return 0 }
+}
+
+export function Proposals({ lead }) {
+  const { sync, pushToast } = useStore()
+  const [list, setList] = useState([])
+  const [composing, setComposing] = useState(false)
+  const [form, setForm] = useState(EMPTY_PROPOSAL)
+  const [busy, setBusy] = useState(false)
+  const live = sync.connState === 'live'
+
+  async function refresh() {
+    if (!live) return
+    try {
+      const r = await api.proposalList(lead.id)
+      setList(Array.isArray(r) ? r : [])
+    } catch (e) { /* quiet */ }
+  }
+
+  useEffect(() => { refresh() }, [lead && lead.id, live])
+
+  function linkFor(p) {
+    return location.origin + import.meta.env.BASE_URL + 'proposal.html?id=' + encodeURIComponent(p.id) + '&b=' + encodeURIComponent(getConnection().url)
+  }
+
+  function copyLink(p) {
+    const url = linkFor(p)
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).catch(() => {})
+    pushToast('Proposal link copied', 'success')
+  }
+
+  function sendOnWhatsApp(p) {
+    const msg = 'Here is your proposal: ' + linkFor(p)
+    window.open('https://wa.me/' + waTarget(lead.phone) + '?text=' + encodeURIComponent(msg), '_blank', 'noopener')
+  }
+
+  async function create() {
+    if (!form.title.trim()) { pushToast('Give the proposal a title first', 'error'); return }
+    setBusy(true)
+    try {
+      const r = await api.proposalCreate({
+        leadId: String(lead.id),
+        title: form.title.trim(),
+        amount: Number(String(form.amount || '').replace(/[^0-9]/g, '')) || 0,
+        services: form.services,
+        message: form.message,
+        validity: form.validity,
+      })
+      if (r && r.ok) {
+        pushToast('Proposal created', 'success')
+        setForm(EMPTY_PROPOSAL)
+        setComposing(false)
+        refresh()
+      } else {
+        pushToast('Create failed: ' + ((r && r.error) || 'unknown'), 'error')
+      }
+    } catch (e) {
+      pushToast('Create failed: ' + ((e && e.message) || 'unknown'), 'error')
+    } finally { setBusy(false) }
+  }
+
+  async function del(p) {
+    if (!window.confirm('Delete this proposal?')) return
+    try { await api.proposalDel(p.id) } catch (e) { /* ignore */ }
+    pushToast('Proposal deleted', 'success')
+    refresh()
+  }
+
+  if (!live) {
+    return (
+      <div>
+        <h3 className="mb-2 text-sm font-semibold">Proposals</h3>
+        <p className="rounded-lg border border-dashed border-stone-300 bg-cream px-3 py-4 text-center text-xs text-navy/50">
+          Connect your sheet to create proposals - clients open them on their phone, and you see every open and the acceptance.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <div className="mb-2 flex items-center justify-between">
+        <h3 className="text-sm font-semibold">Proposals</h3>
+        <button className="text-xs font-medium text-deepgreen hover:underline" onClick={() => setComposing((c) => !c)}>
+          {composing ? 'Cancel' : '+ New proposal'}
+        </button>
+      </div>
+
+      {composing && (
+        <div className="mb-3 space-y-2 rounded-lg border border-wagreen/40 bg-wagreen/5 p-3">
+          <input className={inputCls} placeholder="Proposal title (e.g. Inventory system setup)" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} />
+          <div className="grid grid-cols-2 gap-2">
+            <input className={inputCls} inputMode="numeric" placeholder="Amount (PHP)" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} />
+            <input className={inputCls} placeholder="Validity (days)" value={form.validity} onChange={(e) => setForm((f) => ({ ...f, validity: e.target.value }))} />
+          </div>
+          <textarea className={inputCls + ' min-h-20 resize-y'} placeholder="What is included - one item per line" value={form.services} onChange={(e) => setForm((f) => ({ ...f, services: e.target.value }))} />
+          <textarea className={inputCls + ' min-h-16 resize-y'} placeholder="Message to the client (optional)" value={form.message} onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))} />
+          <Button className="w-full" onClick={create} disabled={busy}>{busy ? 'Creating...' : 'Create proposal'}</Button>
+        </div>
+      )}
+
+      {!list.length && !composing && <p className="text-xs text-navy/50">No proposals yet. Create one, send the link on WhatsApp, and watch the opens come in.</p>}
+
+      <div className="space-y-2">
+        {list.map((p) => {
+          const opened = proposalOpens(p)
+          const accepted = p.status === 'accepted'
+          return (
+            <div key={p.id} className="rounded-lg border border-stone-200 bg-white px-3 py-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="min-w-0 flex-1 truncate text-xs font-semibold">{p.title}</p>
+                {accepted ? (
+                  <span className="shrink-0 rounded-full bg-wagreen/15 px-2 py-0.5 text-[10px] font-semibold text-deepgreen">Accepted</span>
+                ) : p.openedAt ? (
+                  <span className="shrink-0 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700">Opened{opened > 1 ? ' (' + opened + 'x)' : ''}</span>
+                ) : (
+                  <span className="shrink-0 rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-medium text-stone-600">Created</span>
+                )}
+              </div>
+              <div className="mt-1.5 flex items-center justify-between text-[11px] text-navy/40">
+                <span>{formatPeso(p.amount)}</span>
+                <span className="flex gap-2">
+                  <button className="font-medium text-deepgreen hover:underline" onClick={() => sendOnWhatsApp(p)}>Send on WhatsApp</button>
+                  <button className="font-medium text-deepgreen hover:underline" onClick={() => copyLink(p)}>Copy link</button>
+                  <button className="font-medium text-terracotta hover:underline" onClick={() => del(p)}>Delete</button>
+                </span>
+              </div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
