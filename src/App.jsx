@@ -23,7 +23,8 @@ export default function App() {
   const { leads, sync } = useStore()
   const [tab, setTab] = useState('pipeline')
   const [openLeadId, setOpenLeadId] = useState(null)
-  const [modalLead, setModalLead] = useState(null) // null = closed, 'new' = add, object = edit
+  const [modalLead, setModalLead] = useState(null)
+  const [modalPreset, setModalPreset] = useState(null) // null = closed, 'new' = add, object = edit
   const [settingsOpen, setSettingsOpen] = useState(false)
 
   const openLead = leads.find((l) => l.id === openLeadId) || null
@@ -77,7 +78,7 @@ export default function App() {
       </header>
 
       <main className="min-h-0 flex-1 overflow-y-auto">
-        {tab === 'pipeline' && <Board onOpenLead={setOpenLeadId} onNewLead={() => setModalLead('new')} />}
+        {tab === 'pipeline' && <Board onOpenLead={setOpenLeadId} onNewLead={() => setModalLead('new')} onQuickWhatsApp={() => { setModalPreset('whatsapp'); setModalLead('new') }} />}
         {tab === 'followups' && <Followups onOpenLead={setOpenLeadId} />}
         {tab === 'analytics' && <Analytics />}
       </main>
@@ -90,7 +91,8 @@ export default function App() {
       {modalLead !== null && (
         <LeadModal
           lead={modalLead === 'new' ? null : modalLead}
-          onClose={() => setModalLead(null)}
+          preset={modalPreset}
+          onClose={() => { setModalLead(null); setModalPreset(null) }}
         />
       )}
       {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}

@@ -3,7 +3,7 @@ import { SOURCES, STAGES } from './data'
 import { formatPeso, isOverdue, relTime, useStore } from './store'
 import { SourceBadge, inputCls } from './ui'
 
-export default function Board({ onOpenLead, onNewLead }) {
+export default function Board({ onOpenLead, onNewLead, onQuickWhatsApp }) {
   const { leads, actions, linkBadges } = useStore()
   const [search, setSearch] = useState('')
   const [sourceFilter, setSourceFilter] = useState('all')
@@ -55,7 +55,14 @@ export default function Board({ onOpenLead, onNewLead }) {
           <option value="all">All</option>
           {STAGES.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
         </select>
-        <div className="ml-auto">
+        <div className="ml-auto flex gap-2">
+          <button
+            onClick={onQuickWhatsApp}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-wagreen/50 bg-white px-3 py-2 text-sm font-medium text-deepgreen transition-colors hover:bg-wagreen/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-wagreen/60"
+            title="Quick capture from a WhatsApp chat"
+          >
+            <span className="text-base leading-none">+</span> WhatsApp lead
+          </button>
           <button
             onClick={onNewLead}
             className="inline-flex items-center gap-1.5 rounded-lg bg-wagreen px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-deepgreen active:bg-deepgreen/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-wagreen/60"

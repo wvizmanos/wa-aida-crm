@@ -43,14 +43,14 @@ export const inputCls =
 // name, phone, source and product are fixed after creation (they can be
 // corrected in the Google Sheet). In demo mode everything is editable.
 
-export function LeadModal({ lead, onClose }) {
+export function LeadModal({ lead, preset, onClose }) {
   const { actions, sync } = useStore()
   const editing = !!lead
   const canEditCore = !editing || sync.demoMode // add always; edit core fields only in demo
   const [form, setForm] = useState({
     name: lead?.name || '',
     phone: lead?.phone || '',
-    source: lead?.source || 'manual',
+    source: lead?.source || (preset === 'whatsapp' ? 'whatsapp' : 'manual'),
     product: lead?.product || '',
     stage: lead?.stage || 'new',
     value: lead?.value ?? '',
@@ -58,6 +58,11 @@ export function LeadModal({ lead, onClose }) {
   })
   const [errors, setErrors] = useState({})
   const [saving, setSaving] = useState(false)
+  const phoneRef = useRef(null)
+
+  useEffect(() => {
+    if (!editing && preset === 'whatsapp' && phoneRef.current) phoneRef.current.focus()
+  }, [])
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
@@ -100,6 +105,11 @@ export function LeadModal({ lead, onClose }) {
           <Button variant="ghost" onClick={onClose} aria-label="Close" className="h-8 w-8 !p-0 text-xl leading-none">×</Button>
         </div>
         <form onSubmit={submit} className="space-y-4" noValidate>
+          {!editing && preset === 'whatsapp' && (
+            <p className="rounded-lg bg-wagreen/10 px-3 py-2 text-xs font-medium text-deepgreen">
+              Quick capture from WhatsApp - paste the number, add a name, done.
+            </p>
+          )}
           <div>
             <label className="mb-1 block text-xs font-medium text-navy/70">Name *</label>
             <input className={inputCls} value={form.name} onChange={set('name')} disabled={!canEditCore} placeholder="e.g. Maria Santos" />
@@ -111,9 +121,15 @@ export function LeadModal({ lead, onClose }) {
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-navy/70">WhatsApp number *</label>
-            <input className={inputCls} value={form.phone} onChange={set('phone')} disabled={!canEditCore} placeholder="+63 9xx xxx xxxx" />
+            <input ref={phoneRef} className={inputCls} value={form.phone} onChange={set('phone')} disabled={!canEditCore} placeholder="+63 9xx xxx xxxx" />
             {errors.phone && <p className="mt-1 text-xs text-terracotta">{errors.phone}</p>}
           </div>
+          {!editing && preset === 'whatsapp' && (
+            <div>
+              <label className="mb-1 block text-xs font-medium text-navy/70">Chat context (optional)</label>
+              <textarea className={inputCls + ' min-h-16 resize-y'} value={form.notes || ''} onChange={set('notes')} placeholder="e.g. Asked about the siomai franchise pricing" />
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="mb-1 block text-xs font-medium text-navy/70">Source</label>
