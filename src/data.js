@@ -187,18 +187,3 @@ export function waTarget(phone) {
   if (d.length === 10 && d.startsWith('9')) d = '63' + d
   return d
 }
-
-// Deep links for the channels that need no server (multichannel Phase 1):
-// the phone's own Viber / SMS app opens on the same number as the existing
-// wa.me chip. Empty string means the lead has no usable number.
-export function viberLink(phone, text) {
-  const d = waTarget(phone)
-  if (!d) return ''
-  return 'viber://chat?number=%2B' + d + (text ? '&text=' + encodeURIComponent(text) : '')
-}
-
-export function smsLink(phone, text) {
-  const d = waTarget(phone)
-  if (!d) return ''
-  return 'sms:+' + d + (text ? '?body=' + encodeURIComponent(text) : '')
-}

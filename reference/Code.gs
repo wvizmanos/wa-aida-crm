@@ -141,8 +141,6 @@ function doGet(e) {
     if (action === 'tpl_del') return json_(tplDel_(sh, p));
     if (action === 'tpl_list') return json_(tplList_(sh, p));
     if (action === 'tpl_use') return json_(tplUse_(sh, p));
-    if (action === 'send_email') return json_(sendEmail_(sh, p));
-    if (action === 'email_quota') return json_(emailQuota_());
     if (action === 'open') return openPage_(sh, p);
     return json_({ error: 'unknown action: ' + action });
   } catch (err) {
@@ -788,96 +786,4 @@ function actLog_(sh, p) {
   if (r < 0) return { error: 'lead not found' };
   actAppend_(sh, r, { t: 'link', ts: new Date().toISOString(), label: p.label || 'Activity' });
   return { ok: true };
-}
-
-/* --- Email (multichannel Phase 1) ----------------------------------------
- * send_email relays a quotation email through the account that owns this
- * script - the same MailApp pipe the daily reminder digest already uses.
- * The WA_AIDA_TOKEN gate in doGet applies: send_email is deliberately NOT
- * in the public action list (open/ping/proposal_*), so a caller must hold
- * the token. Script Property WA_AIDA_EMAIL_ALLOW (comma/space separated
- * addresses or @domains) additionally pins who may be emailed when set.
- *
- * Params: to, subject, htmlBody, leadId (optional), replyTo (optional).
- * Quota: consumer Gmail ~100 recipients/day, Workspace ~1,500/day.
- * Attachments: MailApp supports Blob attachments, but this build ships
- * none - Drive files travel as links instead. See MULTICHANNEL.md.
- * ------------------------------------------------------------------------ */
-
-var EMAIL_MAX_HTML = 100000;
-
-function ownerEmail_() {
-  try { return Session.getEffectiveUser().getEmail() || ''; } catch (e) { return ''; }
-}
-
-function validEmail_(s) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s || '').trim());
-}
-
-// Optional guard: when WA_AIDA_EMAIL_ALLOW is set, only matching recipients
-// are allowed. Entries are exact addresses or @domain suffixes.
-function emailAllowed_(to) {
-  var allow = '';
-  try { allow = String(PropertiesService.getScriptProperties().getProperty('WA_AIDA_EMAIL_ALLOW') || '').trim(); } catch (e) { allow = ''; }
-  if (!allow) return true;
-  var addr = String(to).toLowerCase();
-  var domain = addr.split('@')[1] || '';
-  var rules = allow.toLowerCase().split(/[\s,]+/);
-  for (var i = 0; i < rules.length; i++) {
-    var r = rules[i];
-    if (!r) continue;
-    if (r.charAt(0) === '@') { if (domain === r.slice(1)) return true; }
-    else if (addr === r) return true;
-  }
-  return false;
-}
-
-// MailApp always needs a plain-text part. Derive it from the HTML the app
-// composed so both bodies carry the same quotation.
-function quotaText_(html) {
-  return String(html)
-    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/(p|div|tr|li|h1|h2|h3)>/gi, '\n')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-    .replace(/&#x([0-9a-f]+);/gi, function (m, h) { return String.fromCharCode(parseInt(h, 16)); })
-    .replace(/&#([0-9]+);/g, function (m, d) { return String.fromCharCode(Number(d)); })
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-}
-
-function emailQuota_() {
-  var remaining = -1;
-  try { remaining = MailApp.getRemainingDailyQuota(); } catch (e) { remaining = -1; }
-  return { ok: true, remaining: remaining, from: ownerEmail_() };
-}
-
-function sendEmail_(sh, p) {
-  var to = String(p.to || '').trim();
-  var subject = String(p.subject || '').trim();
-  var htmlBody = String(p.htmlBody || '');
-  if (!validEmail_(to)) return { ok: false, error: 'invalid recipient email' };
-  if (!subject) return { ok: false, error: 'subject required' };
-  if (!htmlBody) return { ok: false, error: 'htmlBody required' };
-  if (htmlBody.length > EMAIL_MAX_HTML) return { ok: false, error: 'email body too long' };
-  if (!emailAllowed_(to)) return { ok: false, error: 'recipient blocked by WA_AIDA_EMAIL_ALLOW' };
-
-  var opts = { htmlBody: htmlBody, name: 'WA AIDA' };
-  if (validEmail_(p.replyTo)) opts.replyTo = String(p.replyTo).trim();
-
-  try {
-    MailApp.sendEmail(to, subject, quotaText_(htmlBody), opts);
-  } catch (err) {
-    return { ok: false, error: 'Email send failed: ' + String(err) };
-  }
-
-  // Activity parity with the WhatsApp path: one timeline entry per send.
-  if (p.leadId) {
-    var r = findRow_(sh, p.leadId);
-    if (r > 0) actAppend_(sh, r, { t: 'email', ts: new Date().toISOString(), label: 'Email sent: ' + subject });
-  }
-  var remaining = -1;
-  try { remaining = MailApp.getRemainingDailyQuota(); } catch (e2) { remaining = -1; }
-  return { ok: true, to: to, subject: subject, from: ownerEmail_(), remaining: remaining };
 }

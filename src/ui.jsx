@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { SOURCE_STYLES, SOURCES, STAGES, smsLink, sourceLabel, viberLink, waTarget } from './data'
+import { SOURCE_STYLES, SOURCES, STAGES, sourceLabel, waTarget } from './data'
 import { formatDate, formatPeso, isOverdue, todayISO, useStore } from './store'
 import { api, getConnection } from './api'
 
@@ -333,10 +333,6 @@ export function LeadDrawer({ lead, onClose, onEdit }) {
   const followUpDirty = followUp !== null && followUp !== (lead.nextFollowUp || '')
   const waNumber = waTarget(lead.phone)
   const waLink = `https://wa.me/${waNumber}`
-  // Phase 1 multichannel: same number, no infrastructure - the phone's own
-  // Viber / SMS app opens. Empty string when the lead has no usable number.
-  const viberHref = viberLink(lead.phone)
-  const smsHref = smsLink(lead.phone)
   const activity = lead.activity || []
 
   return (
@@ -436,39 +432,6 @@ export function LeadDrawer({ lead, onClose, onEdit }) {
             </a>
             <Button variant="secondary" onClick={() => onEdit(lead)}>Edit</Button>
           </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            {viberHref ? (
-              <a
-                href={viberHref}
-                data-channel="viber"
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`${btnBase} gap-2 border border-stone-300 bg-white px-3 py-2 text-navy shadow-sm hover:border-navy/40 hover:bg-stone-50 active:bg-stone-100`}
-              >
-                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: '#7360f2' }} />
-                Viber
-              </a>
-            ) : (
-              <span className={`${btnBase} cursor-not-allowed border border-dashed border-stone-300 px-3 py-2 text-navy/30`} title="This lead has no phone number yet">Viber</span>
-            )}
-            {smsHref ? (
-              <a
-                href={smsHref}
-                data-channel="sms"
-                className={`${btnBase} gap-2 border border-stone-300 bg-white px-3 py-2 text-navy shadow-sm hover:border-navy/40 hover:bg-stone-50 active:bg-stone-100`}
-              >
-                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: '#16213e' }} />
-                SMS
-              </a>
-            ) : (
-              <span className={`${btnBase} cursor-not-allowed border border-dashed border-stone-300 px-3 py-2 text-navy/30`} title="This lead has no phone number yet">SMS</span>
-            )}
-          </div>
-
-          <p className="text-[11px] leading-relaxed text-navy/40">
-            Viber and SMS open in your phone's own apps - nothing to set up, and no sending costs through the app.
-          </p>
 
           <div>
             <div className="mb-2 flex items-center justify-between">
@@ -642,187 +605,10 @@ function proposalOpens(p) {
   try { const a = JSON.parse(p.opens || '[]'); return Array.isArray(a) ? a.length : 0 } catch (e) { return 0 }
 }
 
-// ---------- Email quotation (multichannel Phase 1) ----------
-
-// The Leads sheet has no email column, so the recipient is entered per send
-// and remembered on this device per lead.
-const EMAIL_BOOK_KEY = 'waaida-emails'
-
-function loadEmailBook() {
-  try {
-    const p = JSON.parse(localStorage.getItem(EMAIL_BOOK_KEY))
-    return p && typeof p === "object" ? p : {}
-  } catch { return {} }
-}
-
-function esc(s) {
-  return String(s == null ? "" : s)
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")
-}
-
-// The client-facing proposal page (same URL the WhatsApp share uses).
-function proposalLink(p) {
-  return location.origin + import.meta.env.BASE_URL + 'proposal.html?id=' + encodeURIComponent(p.id) + '&b=' + encodeURIComponent(getConnection().url)
-}
-
-// Table + inline styles only - the shape Gmail, Outlook and phone clients keep.
-function quoteMail({ leadName, title, amount, services, validity, message, link }) {
-  const first = String(leadName || '').split(' ')[0] || 'there'
-  const peso = formatPeso(Number(String(amount || '').replace(/[^0-9]/g, '')) || 0)
-  const items = String(services || '').split('\n').map((s) => s.trim()).filter(Boolean)
-  const days = Number(String(validity || '').replace(/[^0-9]/g, '')) || 0
-  const t = 'font:14px/1.6 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#16213e;margin:0 0 12px'
-
-  const rows = items.map((s) =>
-    '<tr><td style="padding:8px 0;border-bottom:1px solid #f0e9df;' + t + '">' + esc(s) + '</td></tr>'
-  ).join("")
-
-  const html = [
-    '<div style="margin:0;padding:24px 14px;background:#fdf8f3">',
-    '<div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #f0e9df;border-radius:14px;overflow:hidden">',
-    '<div style="background:#16213e;padding:16px 22px"><span style="font:700 16px/1.2 -apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#fff">WA <span style="color:#25d366">AIDA</span></span></div>',
-    '<div style="padding:22px">',
-    '<p style="' + t + '">Hi ' + esc(first) + ',</p>',
-    '<h2 style="font:700 20px/1.3 -apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#16213e;margin:0 0 4px">' + esc(title || 'Your quotation') + '</h2>',
-    amount ? '<p style="font:700 22px/1.3 -apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#1b5e20;margin:6px 0 14px">' + esc(peso) + '</p>' : "",
-    rows ? '<table role="presentation" style="width:100%;border-collapse:collapse;margin:0 0 14px">' + rows + '</table>' : "",
-    message ? '<p style="' + t + '">' + esc(message) + '</p>' : "",
-    link ? '<p style="margin:0 0 16px"><a href="' + esc(link) + '" style="display:inline-block;background:#25d366;color:#fff;text-decoration:none;font:600 14px/1 -apple-system,Segoe UI,Roboto,Arial,sans-serif;padding:11px 18px;border-radius:9px">View your proposal</a></p>' : "",
-    days ? '<p style="' + t + 'font-size:12px;color:#6b7280">This quotation is valid for ' + days + ' day' + (days > 1 ? 's' : '') + ' from today.</p>' : "",
-    '<p style="' + t + 'font-size:12px;color:#6b7280">Sent from WA AIDA - your WhatsApp AI business consultant.</p>',
-    "</div></div></div>",
-  ].join("")
-
-  const text = [
-    'Hi ' + first + ',',
-    "",
-    title || "Your quotation",
-    amount ? peso : "",
-    items.map((s) => "- " + s).join("\n"),
-    message || "",
-    link ? 'View your proposal: ' + link : "",
-    days ? 'This quotation is valid for ' + days + ' day' + (days > 1 ? 's' : '') + '.' : "",
-  ].filter((x) => x !== "").join("\n")
-
-  return { html, text }
-}
-
-function EmailQuotation({ lead, proposal, onClose }) {
-  const { sync, actions, pushToast } = useStore()
-  const live = sync.connState === 'live'
-  const book = loadEmailBook()
-  const [to, setTo] = useState(book[String(lead.id)] || '')
-  const [title, setTitle] = useState(proposal?.title || '')
-  const [amount, setAmount] = useState(proposal && proposal.amount ? String(proposal.amount) : '')
-  const [services, setServices] = useState(proposal?.services || '')
-  const [validity, setValidity] = useState(proposal?.validity || '14')
-  const [message, setMessage] = useState(proposal?.message || '')
-  const [busy, setBusy] = useState(false)
-  const [quota, setQuota] = useState(null)
-
-  const link = proposal ? proposalLink(proposal) : ""
-  const composed = quoteMail({ leadName: lead.name, title, amount, services, validity, message, link })
-  const subject = 'Quotation: ' + (title.trim() || 'WA AIDA')
-
-  useEffect(() => {
-    if (!live) return
-    let alive = true
-    api.emailQuota().then((r) => { if (alive && r && typeof r.remaining === "number") setQuota(r) }).catch(() => {})
-    return () => { alive = false }
-  }, [live])
-
-  function remember(addr) {
-    try {
-      localStorage.setItem(EMAIL_BOOK_KEY, JSON.stringify({ ...loadEmailBook(), [String(lead.id)]: addr }))
-    } catch { /* storage is optional */ }
-  }
-
-  async function send() {
-    const addr = to.trim()
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(addr)) { pushToast("Enter a valid recipient email", "error"); return }
-    if (!title.trim()) { pushToast("Give the quotation a title first", "error"); return }
-    setBusy(true)
-    try {
-      if (live) {
-        const r = await actions.sendEmail(lead, { to: addr, subject, htmlBody: composed.html })
-        if (r && r.ok) {
-          remember(addr)
-          if (typeof r.remaining === "number") setQuota({ remaining: r.remaining })
-          onClose && onClose()
-        }
-      } else {
-        // No backend: hand the quotation to the phone's own mail app, the
-        // same shape as the wa.me fallback the WhatsApp chips already use.
-        remember(addr)
-        window.location.href = 'mailto:' + encodeURIComponent(addr) + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(composed.text)
-        pushToast("Opening your mail app", "info")
-        onClose && onClose()
-      }
-    } finally { setBusy(false) }
-  }
-
-  return (
-    <div className="mb-3 space-y-2 rounded-lg border border-wagreen/40 bg-wagreen/5 p-3">
-      <div className="flex items-center justify-between">
-        <p className="text-xs font-semibold">Email quotation</p>
-        <button className="text-xs font-medium text-navy/50 hover:underline" onClick={onClose}>Close</button>
-      </div>
-      <input
-        id="quotation-to"
-        className={inputCls}
-        type="email"
-        inputMode="email"
-        autoComplete="off"
-        placeholder="Client email (e.g. owner@shop.ph)"
-        value={to}
-        onChange={(e) => setTo(e.target.value)}
-      />
-      <input
-        id="quotation-title"
-        className={inputCls}
-        placeholder="Quotation title (e.g. Inventory system setup)"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-      />
-      <div className="grid grid-cols-2 gap-2">
-        <input className={inputCls} inputMode="numeric" placeholder="Amount (PHP)" value={amount} onChange={(e) => setAmount(e.target.value)} />
-        <input className={inputCls} inputMode="numeric" placeholder="Validity (days)" value={validity} onChange={(e) => setValidity(e.target.value)} />
-      </div>
-      <textarea
-        className={inputCls + " min-h-16 resize-y"}
-        placeholder="What is included - one item per line"
-        value={services}
-        onChange={(e) => setServices(e.target.value)}
-      />
-      <textarea
-        className={inputCls + " min-h-12 resize-y"}
-        placeholder="Short note to the client (optional)"
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-      />
-      <p className="truncate text-[11px] text-navy/40">
-        {link ? "Includes the client proposal page: " + link : "Save this as a proposal first to include a client link."}
-      </p>
-      <div className="overflow-hidden rounded-lg border border-stone-200 bg-white">
-        <iframe title="Quotation preview" sandbox="" srcDoc={composed.html} className="h-56 w-full" />
-      </div>
-      <p className="text-[11px] leading-relaxed text-navy/40">
-        {live
-          ? "Sends from your connected Google account by email." + (quota && quota.remaining >= 0 ? " " + quota.remaining + " recipient" + (quota.remaining === 1 ? "" : "s") + " left today." : "")
-          : "Your sheet is not connected - this opens your own mail app instead, so you can still send it."}
-      </p>
-      <Button id="quotation-send" className="w-full" onClick={send} disabled={busy}>
-        {busy ? "Sending..." : "Send quotation"}
-      </Button>
-    </div>
-  )
-}
-
 export function Proposals({ lead }) {
   const { sync, pushToast } = useStore()
   const [list, setList] = useState([])
   const [composing, setComposing] = useState(false)
-  const [emailing, setEmailing] = useState(null) // null | 'new' | proposal
   const [form, setForm] = useState(EMPTY_PROPOSAL)
   const [busy, setBusy] = useState(false)
   const live = sync.connState === 'live'
@@ -838,7 +624,7 @@ export function Proposals({ lead }) {
   useEffect(() => { refresh() }, [lead && lead.id, live])
 
   function linkFor(p) {
-    return proposalLink(p)
+    return location.origin + import.meta.env.BASE_URL + 'proposal.html?id=' + encodeURIComponent(p.id) + '&b=' + encodeURIComponent(getConnection().url)
   }
 
   function copyLink(p) {
@@ -887,26 +673,10 @@ export function Proposals({ lead }) {
   if (!live) {
     return (
       <div>
-        <div className="mb-2 flex items-center justify-between">
-          <h3 className="text-sm font-semibold">Proposals</h3>
-          <button
-            id="email-quotation-toggle"
-            className="text-xs font-medium text-deepgreen hover:underline"
-            onClick={() => setEmailing(emailing ? null : 'new')}
-          >
-            {emailing ? 'Cancel' : 'Email quotation'}
-          </button>
-        </div>
-
-        {emailing && (
-          <EmailQuotation lead={lead} proposal={emailing === 'new' ? null : emailing} onClose={() => setEmailing(null)} />
-        )}
-
-        {!emailing && (
-          <p className="rounded-lg border border-dashed border-stone-300 bg-cream px-3 py-4 text-center text-xs text-navy/50">
-            Connect your sheet to create proposals - clients open them on their phone, and you see every open and the acceptance.
-          </p>
-        )}
+        <h3 className="mb-2 text-sm font-semibold">Proposals</h3>
+        <p className="rounded-lg border border-dashed border-stone-300 bg-cream px-3 py-4 text-center text-xs text-navy/50">
+          Connect your sheet to create proposals - clients open them on their phone, and you see every open and the acceptance.
+        </p>
       </div>
     )
   }
@@ -915,23 +685,10 @@ export function Proposals({ lead }) {
     <div>
       <div className="mb-2 flex items-center justify-between">
         <h3 className="text-sm font-semibold">Proposals</h3>
-        <span className="flex items-center gap-3">
-          <button
-            id="email-quotation-toggle"
-            className="text-xs font-medium text-deepgreen hover:underline"
-            onClick={() => setEmailing(emailing ? null : 'new')}
-          >
-            {emailing ? 'Cancel' : 'Email quotation'}
-          </button>
-          <button className="text-xs font-medium text-deepgreen hover:underline" onClick={() => setComposing((c) => !c)}>
-            {composing ? 'Cancel' : '+ New proposal'}
-          </button>
-        </span>
+        <button className="text-xs font-medium text-deepgreen hover:underline" onClick={() => setComposing((c) => !c)}>
+          {composing ? 'Cancel' : '+ New proposal'}
+        </button>
       </div>
-
-      {emailing && (
-        <EmailQuotation lead={lead} proposal={emailing === 'new' ? null : emailing} onClose={() => setEmailing(null)} />
-      )}
 
       {composing && (
         <div className="mb-3 space-y-2 rounded-lg border border-wagreen/40 bg-wagreen/5 p-3">
@@ -966,8 +723,7 @@ export function Proposals({ lead }) {
               </div>
               <div className="mt-1.5 flex items-center justify-between text-[11px] text-navy/40">
                 <span>{formatPeso(p.amount)}</span>
-                <span className="flex flex-wrap justify-end gap-2">
-                  <button className="font-medium text-deepgreen hover:underline" onClick={() => setEmailing(p)}>Email quotation</button>
+                <span className="flex gap-2">
                   <button className="font-medium text-deepgreen hover:underline" onClick={() => sendOnWhatsApp(p)}>Send on WhatsApp</button>
                   <button className="font-medium text-deepgreen hover:underline" onClick={() => copyLink(p)}>Copy link</button>
                   <button className="font-medium text-terracotta hover:underline" onClick={() => del(p)}>Delete</button>
