@@ -711,6 +711,38 @@ export function StoreProvider({ children }) {
       }
     },
 
+    async sendEmail(lead, { to, subject, htmlBody }) {
+      if (!lead || !subject) return { ok: false, error: 'nothing to send' }
+      if (demoMode || authFailedRef.current) return { ok: false, error: 'demo mode - connect the sheet to send email' }
+      const addr = String(to || '').trim()
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(addr)) {
+        pushToast('Enter a valid recipient email', 'error')
+        return { ok: false, error: 'bad email' }
+      }
+      pushToast('Sending email...', 'info')
+      try {
+        const r = await api.sendEmail(addr, subject, htmlBody, String(lead.id))
+        if (r && r.ok) {
+          const label = 'Email sent: ' + subject
+          setLeads((ls) => ls.map((l) => (String(l.id) === String(lead.id) ? { ...l, activity: [...(l.activity || []), { t: 'email', ts: new Date().toISOString(), label }] } : l)))
+          pushToast('Email sent to ' + addr, 'success')
+        } else {
+          pushToast('Email: ' + ((r && r.error) || 'send failed'), 'error')
+        }
+        return r
+      } catch (e) {
+        pushToast('Email: ' + ((e && e.message) || 'send failed'), 'error')
+        return { ok: false, error: String((e && e.message) || e) }
+      }
+    },
+
+    logActivity(lead, label) {
+      if (!lead || !label) return
+      const entry = { t: 'wa', ts: new Date().toISOString(), label: label }
+      setLeads((ls) => ls.map((l) => (String(l.id) === String(lead.id) ? { ...l, activity: [...(l.activity || []), entry] } : l)))
+      api.actLog(String(lead.id), label).catch(() => {})
+    },
+
     async sendWhatsAppTemplate(lead, tpl) {
       if (!lead || !tpl) return { ok: false, error: 'nothing to send' }
       if (demoMode || authFailedRef.current) return { ok: false, error: 'demo mode - connect the sheet to auto-send' }

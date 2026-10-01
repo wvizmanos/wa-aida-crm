@@ -181,6 +181,18 @@ export const seedLeads = () => [
 
 // Normalizes PH phone formats (09xx..., 9xx..., +63...) into international digits
 // for the WhatsApp Cloud API and wa.me links. One place, every call site.
+export function viberLink(phone, text) {
+  const d = waTarget(phone)
+  if (!d) return ''
+  return 'viber://chat?number=%2B' + d + (text ? '&text=' + encodeURIComponent(text) : '')
+}
+
+export function smsLink(phone, text) {
+  const d = waTarget(phone)
+  if (!d) return ''
+  return 'sms:+' + d + (text ? '?body=' + encodeURIComponent(text) : '')
+}
+
 export function waTarget(phone) {
   let d = String(phone || '').replace(/[^0-9]/g, '')
   if (d.startsWith('0')) d = d.replace(/^0+/, '')

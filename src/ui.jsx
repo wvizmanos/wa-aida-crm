@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { SOURCE_STYLES, SOURCES, STAGES, sourceLabel, waTarget } from './data'
+import { SOURCE_STYLES, SOURCES, STAGES, smsLink, sourceLabel, viberLink, waTarget } from './data'
 import { formatDate, formatPeso, isOverdue, todayISO, useStore } from './store'
 import { api, getConnection } from './api'
 
@@ -319,6 +319,7 @@ export function LeadDrawer({ lead, onClose, onEdit }) {
   const [noteText, setNoteText] = useState(null) // null = pristine (show lead.notes)
   const [followUp, setFollowUp] = useState(null) // null = pristine
   const [coldMode, setColdMode] = useState(false)
+  const [emailing, setEmailing] = useState(false)
 
   // Opening a drawer acknowledges that lead's link-open badges.
   useEffect(() => {
@@ -332,6 +333,8 @@ export function LeadDrawer({ lead, onClose, onEdit }) {
   const notesDirty = noteText !== null && noteText !== (lead.notes || '')
   const followUpDirty = followUp !== null && followUp !== (lead.nextFollowUp || '')
   const waNumber = waTarget(lead.phone)
+  const viberHref = viberLink(lead.phone)
+  const smsHref = smsLink(lead.phone)
   const waLink = `https://wa.me/${waNumber}`
   const activity = lead.activity || []
 
@@ -471,6 +474,44 @@ export function LeadDrawer({ lead, onClose, onEdit }) {
 
           <div className="border-t border-stone-100 pt-4">
             <TrackedLinks lead={lead} />
+          </div>
+
+          {(viberHref || smsHref) && (
+            <div className="border-t border-stone-100 pt-4">
+              <h3 className="mb-2 text-sm font-semibold">Other channels</h3>
+              <div className="grid grid-cols-2 gap-2">
+                {viberHref && (
+                  <a
+                    href={viberHref}
+                    className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-purple-300 bg-white px-3 py-2 text-sm font-medium text-purple-700 transition-colors hover:bg-purple-50"
+                    onClick={() => actions.logActivity(lead, 'Opened Viber for ' + lead.name)}
+                  >
+                    <span className="text-xs">Viber</span>
+                  </a>
+                )}
+                {smsHref && (
+                  <a
+                    href={smsHref}
+                    className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-blue-300 bg-white px-3 py-2 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-50"
+                    onClick={() => actions.logActivity(lead, 'Opened SMS for ' + lead.name)}
+                  >
+                    <span className="text-xs">SMS</span>
+                  </a>
+                )}
+              </div>
+              <p className="mt-1 text-[11px] text-navy/40">Opens the phone's Viber/SMS app on the same number - no server needed.</p>
+            </div>
+          )}
+
+          <div className="border-t border-stone-100 pt-4">
+            <div className="mb-2 flex items-center justify-between">
+              <h3 className="text-sm font-semibold">Email quotation</h3>
+              <button className="text-xs font-medium text-deepgreen hover:underline" onClick={() => setEmailing((e) => !e)}>
+                {emailing ? 'Cancel' : '+ New quotation'}
+              </button>
+            </div>
+            {emailing && <EmailQuotation lead={lead} onClose={() => setEmailing(false)} />}
+            {!emailing && <p className="text-xs text-navy/50">Send a branded quotation by email - Gmail sends it from your connected Google account.</p>}
           </div>
 
           <div className="border-t border-stone-100 pt-4">
@@ -733,6 +774,122 @@ export function Proposals({ lead }) {
           )
         })}
       </div>
+    </div>
+  )
+}
+
+// ---------- Email quotation (multichannel, ported from Monark) ----------
+
+const EMAIL_BOOK_KEY = 'waaida-email-book'
+
+function loadEmailBook() {
+  try {
+    const p = JSON.parse(localStorage.getItem(EMAIL_BOOK_KEY))
+    return p && typeof p === "object" ? p : {}
+  } catch { return {} }
+}
+
+function esc(s) {
+  return String(s == null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")
+}
+
+function trackingUrlFor(ln) {
+  if (!ln) return ""
+  const base = getConnection().url
+  return base ? base + "?action=open&id=" + encodeURIComponent(ln.id) : (ln.url || "")
+}
+
+function quoteMail({ leadName, title, amount, services, validity, message, link }) {
+  const first = String(leadName || '').split(' ')[0] || 'there'
+  const peso = formatPeso(Number(String(amount || '').replace(/[^0-9]/g, '')) || 0)
+  const items = String(services || '').split('\n').map((s) => s.trim()).filter(Boolean)
+  const days = Number(String(validity || '').replace(/[^0-9]/g, '')) || 0
+  const t = 'font:14px/1.6 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#16213e;margin:0 0 12px'
+  const rows = items.map((s) => '<tr><td style="padding:8px 0;border-bottom:1px solid #f0e9df;' + t + '">' + esc(s) + '</td></tr>').join("")
+  const html = [
+    '<div style="margin:0;padding:24px 14px;background:#fdf8f3">',
+    '<div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #f0e9df;border-radius:14px;overflow:hidden">',
+    '<div style="background:#16213e;padding:16px 22px"><span style="font:700 16px/1.2 -apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#fff"><span style="color:#25d366">&#9679;</span> WA AIDA</span></div>',
+    '<div style="padding:22px">',
+    '<p style="' + t + '">Hi ' + esc(first) + ',</p>',
+    '<h2 style="font:700 20px/1.3 -apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#16213e;margin:0 0 4px">' + esc(title || 'Your quotation') + '</h2>',
+    amount ? '<p style="font:700 22px/1.3 -apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#1b5e20;margin:6px 0 14px">' + esc(peso) + '</p>' : "",
+    rows ? '<table role="presentation" style="width:100%;border-collapse:collapse;margin:0 0 14px">' + rows + '</table>' : "",
+    message ? '<p style="' + t + '">' + esc(message) + '</p>' : "",
+    link ? '<p style="margin:0 0 16px"><a href="' + esc(link) + '" style="display:inline-block;background:#25d366;color:#fff;text-decoration:none;font:600 14px/1 -apple-system,Segoe UI,Roboto,Arial,sans-serif;padding:11px 18px;border-radius:9px">View details</a></p>' : "",
+    days ? '<p style="' + t + 'font-size:12px;color:#6b7280">This quotation is valid for ' + days + ' day' + (days > 1 ? 's' : '') + ' from today.</p>' : "",
+    '<p style="' + t + 'font-size:12px;color:#6b7280">Sent from WA AIDA CRM.</p>',
+    "</div></div></div>",
+  ].join("")
+  const text = ['Hi ' + first + ',', "", title || "Your quotation", amount ? peso : "", items.map((s) => "- " + s).join("\n"), message || "", link ? 'View details: ' + link : "", days ? 'This quotation is valid for ' + days + ' day' + (days > 1 ? 's' : '') + '.' : ""].filter((x) => x !== "").join("\n")
+  return { html, text }
+}
+
+function EmailQuotation({ lead, onClose }) {
+  const { links, sync, actions, pushToast } = useStore()
+  const live = sync.connState === 'live'
+  const book = loadEmailBook()
+  const [to, setTo] = useState(book[String(lead.id)] || '')
+  const [title, setTitle] = useState(lead.product ? String(lead.product) + ' - quotation' : '')
+  const [amount, setAmount] = useState(lead.value ? String(lead.value) : '')
+  const [services, setServices] = useState('')
+  const [validity, setValidity] = useState('14')
+  const [message, setMessage] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [quota, setQuota] = useState(null)
+  const mine = Array.isArray(links) ? links.filter((ln) => String(ln.leadId) === String(lead.id)) : []
+  const latest = mine.length ? mine[mine.length - 1] : null
+  const [link, setLink] = useState(trackingUrlFor(latest))
+  const composed = quoteMail({ leadName: lead.name, title, amount, services, validity, message, link })
+  const subject = 'Quotation: ' + (title.trim() || 'WA AIDA')
+
+  useEffect(() => {
+    if (!live) return
+    let alive = true
+    api.emailQuota().then((r) => { if (alive && r && typeof r.remaining === "number") setQuota(r) }).catch(() => {})
+    return () => { alive = false }
+  }, [live])
+
+  function remember(addr) {
+    try { localStorage.setItem(EMAIL_BOOK_KEY, JSON.stringify({ ...loadEmailBook(), [String(lead.id)]: addr })) } catch {}
+  }
+
+  async function send() {
+    const addr = to.trim()
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(addr)) { pushToast("Enter a valid recipient email", "error"); return }
+    if (!title.trim()) { pushToast("Give the quotation a title first", "error"); return }
+    setBusy(true)
+    try {
+      if (live) {
+        const r = await actions.sendEmail(lead, { to: addr, subject, htmlBody: composed.html })
+        if (r && r.ok) { remember(addr); if (typeof r.remaining === "number") setQuota({ remaining: r.remaining }); onClose && onClose() }
+      } else {
+        remember(addr)
+        window.location.href = 'mailto:' + encodeURIComponent(addr) + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(composed.text)
+        pushToast("Opening your mail app", "info")
+        onClose && onClose()
+      }
+    } finally { setBusy(false) }
+  }
+
+  return (
+    <div className="space-y-2 rounded-lg border border-wagreen/40 bg-wagreen/5 p-3">
+      <input className={inputCls} type="email" inputMode="email" autoComplete="off" placeholder="Client email (e.g. owner@shop.ph)" value={to} onChange={(e) => setTo(e.target.value)} />
+      <input className={inputCls} placeholder="Quotation title" value={title} onChange={(e) => setTitle(e.target.value)} />
+      <div className="grid grid-cols-2 gap-2">
+        <input className={inputCls} inputMode="numeric" placeholder="Amount (PHP)" value={amount} onChange={(e) => setAmount(e.target.value)} />
+        <input className={inputCls} inputMode="numeric" placeholder="Validity (days)" value={validity} onChange={(e) => setValidity(e.target.value)} />
+      </div>
+      <textarea className={inputCls + " min-h-16 resize-y"} placeholder="What is included - one item per line" value={services} onChange={(e) => setServices(e.target.value)} />
+      <textarea className={inputCls + " min-h-12 resize-y"} placeholder="Short note to the client (optional)" value={message} onChange={(e) => setMessage(e.target.value)} />
+      <input className={inputCls} placeholder="Link to include (optional)" value={link} onChange={(e) => setLink(e.target.value)} />
+      <p className="text-[11px] leading-relaxed text-navy/40">{latest ? "Prefilled from this lead's latest tracked link - opens are still counted." : "No tracked link for this lead yet - paste one, or leave it empty."}</p>
+      <div className="overflow-hidden rounded-lg border border-stone-200 bg-white">
+        <iframe title="Quotation preview" sandbox="" srcDoc={composed.html} className="h-56 w-full" />
+      </div>
+      <p className="text-[11px] leading-relaxed text-navy/40">{live ? "Sends from your connected Google account by email." + (quota && quota.remaining >= 0 ? " " + quota.remaining + " recipient" + (quota.remaining === 1 ? "" : "s") + " left today." : "") : "Your sheet is not connected - this opens your own mail app instead."}</p>
+      <Button className="w-full" onClick={send} disabled={busy}>{busy ? "Sending..." : "Send quotation"}</Button>
     </div>
   )
 }
