@@ -538,13 +538,21 @@ export function StoreProvider({ children }) {
       api.fuSave({ id: fid, leadId: String(id), name: l ? l.name : '', phone: l ? l.phone || '' : '', what: 'Follow-up', when }).catch(() => {})
     },
     markFollowUpDone(id) {
+      // Won/Lost leads: clear the follow-up entirely, no reschedule
+      const lead = leads.find((l) => String(l.id) === String(id))
+      if (lead && (lead.stage === 'won' || lead.stage === 'lost')) {
+        setFollowUps((f) => { const next = { ...f }; delete next[String(id)]; return next })
+        setFuDone((d) => [...d, { leadId: String(id), at: nowISO() }])
+        pushToast('Follow-up cleared. Lead is ' + lead.stage, 'success')
+        return
+      }
       const dt = new Date()
       dt.setDate(dt.getDate() + 3)
       const p = (x) => String(x).padStart(2, '0')
-      const next = `${dt.getFullYear()}-${p(dt.getMonth() + 1)}-${p(dt.getDate())}`
+      const next = dt.getFullYear() + '-' + p(dt.getMonth() + 1) + '-' + p(dt.getDate())
       this.setFollowUp(id, next)
       setFuDone((d) => [...d, { leadId: String(id), at: nowISO() }])
-      pushToast('Follow-up done — next one in 3 days', 'success')
+      pushToast('Follow-up done. Next one in 3 days', 'success')
     },
 
     deleteLead(id) {
